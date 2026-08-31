@@ -311,6 +311,46 @@
     position: absolute; opacity: 0; width: 0; height: 0; margin: 0;
   }
 
+  /* ---- settings ---- */
+  .icon-btn {
+    width: auto;
+    padding: 4px;
+    background: transparent;
+    color: var(--text-2);
+    display: inline-flex; align-items: center;
+    border-radius: 6px;
+  }
+  .icon-btn:hover { color: var(--text); background: var(--bg-2); }
+  .app-header .icon-btn:last-child { margin-left: auto; }
+  .settings-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 11px;
+  }
+  .settings-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    line-height: 1.4;
+  }
+  .settings-row + .settings-row { border-top: 1px solid var(--border); }
+  .settings-row .grow {
+    flex: 1 1 auto; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .settings-row a { color: var(--brand); font-weight: 600; text-decoration: none; }
+  .settings-row a:hover { text-decoration: underline; }
+  .dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; }
+  .dot-ok { background: #16a34a; }
+  .dot-warn { background: #f59e0b; }
+  .remove-team {
+    width: auto;
+    padding: 2px 5px;
+    background: transparent;
+    color: var(--text-3);
+    font-size: 11px;
+  }
+  .remove-team:hover { color: var(--danger); }
+
   .spinner {
     display: inline-block;
     width: 12px; height: 12px;
@@ -391,7 +431,7 @@
 </div>
 
 <div id="form-screen" class="screen hidden">
-  <div class="app-header"><svg width="14" height="14" viewBox="0 0 120 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M44.5 16V35.5C44.5 37.9853 46.5147 40 49 40H68.5C70.9853 40 73 37.9853 73 35.5V16H79C87.2843 16 94 22.7157 94 31V77.7373C94 84.2964 86.1743 87.6956 81.3809 83.2188L70.0928 72.6748C66.6918 69.498 61.248 70.1527 58.6982 74.0459L38.7744 104.469C34.6914 110.703 25.0001 107.812 25 100.359V31C25 22.7157 31.7157 16 40 16H44.5Z"/><path d="M61 16H67V24.5C67 25.6046 66.1046 26.5 65 26.5H63C61.8954 26.5 61 25.6046 61 24.5V16Z"/></svg><h1>Save to Plary</h1></div>
+  <div class="app-header"><svg width="14" height="14" viewBox="0 0 120 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M44.5 16V35.5C44.5 37.9853 46.5147 40 49 40H68.5C70.9853 40 73 37.9853 73 35.5V16H79C87.2843 16 94 22.7157 94 31V77.7373C94 84.2964 86.1743 87.6956 81.3809 83.2188L70.0928 72.6748C66.6918 69.498 61.248 70.1527 58.6982 74.0459L38.7744 104.469C34.6914 110.703 25.0001 107.812 25 100.359V31C25 22.7157 31.7157 16 40 16H44.5Z"/><path d="M61 16H67V24.5C67 25.6046 66.1046 26.5 65 26.5H63C61.8954 26.5 61 25.6046 61 24.5V16Z"/></svg><h1>Save to Plary</h1><button class="icon-btn" id="open-settings" aria-label="Settings"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button></div>
 
   <div class="content">
     <div id="figma-connection-status" class="hidden"></div>
@@ -448,14 +488,38 @@
         </div>
         <p class="hint">Detected automatically — override here if needed.</p>
       </div>
-
-      <p class="hint" id="plugin-version"></p>
     </details>
   </div>
 
   <div class="app-footer">
     <p class="error hidden" id="save-error"></p>
     <button class="btn-primary" id="save-btn">Save to Plary</button>
+  </div>
+</div>
+
+<div id="settings-screen" class="screen hidden">
+  <div class="app-header">
+    <button class="icon-btn" id="settings-back" aria-label="Back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+    <h1>Settings</h1>
+  </div>
+  <div class="content">
+    <div class="field">
+      <label>Account</label>
+      <div class="settings-card" id="settings-account"></div>
+    </div>
+    <div class="field">
+      <label>Figma connection</label>
+      <div class="settings-card" id="settings-figma"></div>
+    </div>
+    <div class="field">
+      <label>Auto-detect teams</label>
+      <div class="settings-card" id="settings-teams"></div>
+      <input type="text" id="settings-team-url" placeholder="https://www.figma.com/files/team/…" style="margin-top:8px;" />
+      <p class="error hidden" id="settings-team-error" style="margin-top:8px;margin-bottom:0;"></p>
+      <button class="btn-secondary" id="settings-team-add" style="margin-top:8px;">Add team</button>
+      <p class="hint">Auto-detect matches this file's name against files in your registered teams.</p>
+    </div>
+    <p class="hint" id="settings-version" style="text-align:center;"></p>
   </div>
 </div>
 
@@ -479,7 +543,7 @@
   const $ = (id) => document.getElementById(id);
 
   function show(screen) {
-    ["token-screen", "form-screen", "success-screen"].forEach((s) =>
+    ["token-screen", "form-screen", "settings-screen", "success-screen"].forEach((s) =>
       $(s).classList.add("hidden"),
     );
     $(screen).classList.remove("hidden");
@@ -588,12 +652,18 @@
       token = msg.token;
       savedInit = msg;
       if (msg.apiBase) apiBase = msg.apiBase;
-      if (msg.version) $("plugin-version").textContent = "Plugin v" + msg.version;
       updateAccountStatus(msg);
+      // Re-inits triggered from Settings (team add/remove) stay on Settings
+      var inSettings = !$("settings-screen").classList.contains("hidden");
       if (token) {
-        show("form-screen");
         populateForm(msg);
         updateSaveButton(msg.canSave !== false);
+        if (inSettings) {
+          renderSettings(msg);
+          show("settings-screen");
+        } else {
+          show("form-screen");
+        }
       } else {
         show("token-screen");
       }
@@ -656,10 +726,16 @@
       $("auth-status-error").textContent = msg.error || "Something went wrong. Try again.";
       $("auth-status-error").classList.remove("hidden");
     } else if (msg.type === "team-error") {
-      $("team-error").textContent = msg.error || "Couldn't save the team. Try again.";
-      $("team-error").classList.remove("hidden");
+      // Route to whichever surface triggered it — Settings or the save-screen box
+      var inSettingsErr = !$("settings-screen").classList.contains("hidden");
+      var errEl = $(inSettingsErr ? "settings-team-error" : "team-error");
+      errEl.textContent = msg.error || "Couldn't save the team. Try again.";
+      errEl.classList.remove("hidden");
       $("save-team-btn").disabled = false;
       $("save-team-btn").textContent = "Save team";
+      $("settings-team-add").disabled = false;
+      $("settings-team-add").textContent = "Add team";
+      document.querySelectorAll("#settings-teams .remove-team").forEach(function (b) { b.disabled = false; });
     } else if (msg.type === "open-auth-url") {
       window.open(msg.url, "_blank");
     } else if (msg.type === "logged-out") {
@@ -810,25 +886,23 @@
     return div.innerHTML;
   }
 
+  // Save-screen strip appears ONLY when something blocks or degrades saving.
+  // Healthy = zero chrome; account info and logout live in Settings. (#64)
   function updateAccountStatus(msg) {
     var statusEl = $("figma-connection-status");
     var lines = [];
 
-    // Always show which Plary account the token saves to
-    if (msg.plaryUserEmail) {
-      lines.push("Saving to: <b>" + htmlEscape(msg.plaryUserEmail) + "</b>");
-    }
-
     if (msg.accountMismatch) {
       // Red: OAuth-connected Figma account doesn't match active Figma desktop user
+      lines.push("<b style='color:#dc2626'>Account mismatch</b>");
       if (msg.currentUser) {
         lines.push("Current Figma: " + htmlEscape(msg.currentUser.name));
       }
       if (msg.figmaOAuthUser) {
         lines.push("Connected Figma: " + htmlEscape(msg.figmaOAuthUser.display_name || msg.figmaOAuthUser.email));
       }
-      if (lines.length > 1) {
-        lines.splice(1, 0, "<b style='color:#dc2626'>Account mismatch</b>");
+      if (msg.plaryUserEmail) {
+        lines.push("Saving to: <b>" + htmlEscape(msg.plaryUserEmail) + "</b>");
       }
       statusEl.className = "status-error";
     } else if (msg.figmaOAuthUser && msg.figmaHealth === "needs_reconnect") {
@@ -838,23 +912,11 @@
       lines.push("Plary's Figma permissions changed — auto-detected links won't work until you reconnect.");
       lines.push("<a href='" + apiBase + "/settings' target='_blank'>Reconnect in Plary Settings</a>");
       statusEl.className = "status-warn";
-    } else if (msg.figmaOAuthUser) {
-      // Healthy: one compact line, no noise
-      lines = [];
-      if (msg.plaryUserEmail) {
-        lines.push("Saving to <b>" + htmlEscape(msg.plaryUserEmail) + "</b>");
-      } else {
-        lines.push("Figma: " + htmlEscape(msg.figmaOAuthUser.display_name || msg.figmaOAuthUser.email));
-      }
-      statusEl.className = "status-ok";
-    } else if (msg.token) {
+    } else if (!msg.figmaOAuthUser && msg.token) {
       // Yellow/Orange: no Figma OAuth connected — saves are blocked
       lines.push("<b>Figma account required</b>");
       if (msg.currentUser) {
         lines.push("Signed into Figma as: " + htmlEscape(msg.currentUser.name));
-      }
-      if (msg.plaryUserEmail) {
-        lines.push("Plary account: " + htmlEscape(msg.plaryUserEmail));
       }
       lines.push("<a href='" + apiBase + "/settings' target='_blank'>Connect Figma in Plary Settings</a> to enable saves");
       statusEl.className = "status-warn";
@@ -862,15 +924,79 @@
 
     if (lines.length > 0) {
       statusEl.innerHTML = lines.join("<br>");
-      if (msg.token || msg.plaryUserEmail) {
-        statusEl.innerHTML +=
-          ' &middot; <a href="#" id="logout-link" style="color:inherit;font-size:10px;text-decoration:underline;" onclick="document.getElementById(\'logout-link\').onclick=null;parent.postMessage({pluginMessage:{type:\'logout\'}},\'*\');return false;">Log out</a>';
-      }
       statusEl.classList.remove("hidden");
     } else {
       statusEl.classList.add("hidden");
     }
   }
+
+  function renderSettings(msg) {
+    var email = msg.plaryUserEmail ? htmlEscape(msg.plaryUserEmail) : "Signed in";
+    $("settings-account").innerHTML =
+      '<div class="settings-row"><span class="grow"><b>' + email + '</b></span>' +
+      '<a href="#" id="settings-logout">Log out</a></div>';
+    $("settings-logout").onclick = function (e) {
+      e.preventDefault();
+      parent.postMessage({ pluginMessage: { type: "logout" } }, "*");
+    };
+
+    var fig;
+    if (msg.figmaOAuthUser) {
+      var healthy = msg.figmaHealth !== "needs_reconnect" && !msg.accountMismatch;
+      fig = '<div class="settings-row"><span class="dot ' + (healthy ? "dot-ok" : "dot-warn") + '"></span>' +
+        '<span class="grow">' + (healthy ? "Connected" : "Reconnect needed") + " · " +
+        htmlEscape(msg.figmaOAuthUser.display_name || msg.figmaOAuthUser.email || "") + "</span>" +
+        '<a href="' + apiBase + '/settings" target="_blank">Manage</a></div>';
+    } else {
+      fig = '<div class="settings-row"><span class="dot dot-warn"></span><span class="grow">Not connected</span>' +
+        '<a href="' + apiBase + '/settings" target="_blank">Connect</a></div>';
+    }
+    $("settings-figma").innerHTML = fig;
+
+    var teams = msg.figmaTeams || [];
+    if (teams.length === 0) {
+      $("settings-teams").innerHTML =
+        '<div class="settings-row"><span class="grow" style="color:var(--text-3);white-space:normal;">No teams yet — add your team link to enable auto-detected Figma links.</span></div>';
+    } else {
+      $("settings-teams").innerHTML = teams.map(function (id) {
+        return '<div class="settings-row"><span class="grow">' +
+          '<a href="https://www.figma.com/files/team/' + encodeURIComponent(id) + '" target="_blank">Team ' + htmlEscape(id) + "</a></span>" +
+          '<button class="remove-team" data-team="' + htmlEscape(id) + '" aria-label="Remove team">&#10005;</button></div>';
+      }).join("");
+      document.querySelectorAll("#settings-teams .remove-team").forEach(function (btn) {
+        btn.onclick = function () {
+          btn.disabled = true;
+          parent.postMessage({ pluginMessage: { type: "remove-team", teamId: btn.getAttribute("data-team") } }, "*");
+        };
+      });
+    }
+
+    $("settings-team-url").value = "";
+    $("settings-team-error").classList.add("hidden");
+    $("settings-team-add").disabled = false;
+    $("settings-team-add").textContent = "Add team";
+    if (msg.version) $("settings-version").textContent = "Plugin v" + msg.version;
+  }
+
+  $("open-settings").onclick = function () {
+    if (savedInit) renderSettings(savedInit);
+    show("settings-screen");
+  };
+  $("settings-back").onclick = function () {
+    show("form-screen");
+  };
+  $("settings-team-add").onclick = function () {
+    var url = $("settings-team-url").value.trim();
+    if (!url) {
+      $("settings-team-error").textContent = "Paste your team page link.";
+      $("settings-team-error").classList.remove("hidden");
+      return;
+    }
+    $("settings-team-error").classList.add("hidden");
+    $("settings-team-add").disabled = true;
+    $("settings-team-add").textContent = "Adding...";
+    parent.postMessage({ pluginMessage: { type: "save-team-url", url: url } }, "*");
+  };
 
   $("save-another-btn").onclick = () => {
     $("title").value = "";

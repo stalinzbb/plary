@@ -47,3 +47,41 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ team_id: teamId });
 }
+
+// Unregister a team. Next resolve refetches: the file cache invalidates by
+// team_ids mismatch (#52), so removal takes effect without a delete hook.
+export async function DELETE(request: Request) {
+  const userId = await getUserId(request);
+  if (userId instanceof NextResponse) return userId;
+
+  const body = await request.json().catch(() => null);
+  const teamId: string = body?.team_id ?? "";
+  if (!teamId) {
+    return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("figma_connections")
+    .select("team_ids")
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json(
+      { error: "Figma account not connected", error_code: "figma_not_connected" },
+      { status: 403 },
+    );
+  }
+
+  const teamIds: string[] = (data.team_ids ?? []).filter((t: string) => t !== teamId);
+  const { error: updateError } = await supabase
+    .from("figma_connections")
+    .update({ team_ids: teamIds, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (updateError) {
+    return NextResponse.json({ error: "Failed to remove team" }, { status: 500 });
+  }
+
+  return NextResponse.json({ team_id: teamId });
+}

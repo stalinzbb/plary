@@ -179,6 +179,7 @@ async function init() {
   // Check Figma OAuth connection status (non-fatal)
   let figmaConnected = false;
   let figmaHealth: string | null = null;
+  let figmaTeams: string[] = [];
   let figmaOAuthUser: { id: string; email: string | null; display_name: string | null; avatar_url: string | null } | null = null;
   let plaryUserEmail: string | null = null;
   if (token) {
@@ -190,6 +191,7 @@ async function init() {
         const data = await res.json();
         figmaConnected = data.connected;
         figmaHealth = data.health ?? null;
+        figmaTeams = data.team_ids ?? [];
         if (data.figma_user) figmaOAuthUser = data.figma_user;
         if (data.plary_user_email) plaryUserEmail = data.plary_user_email;
       }
@@ -228,6 +230,7 @@ async function init() {
     detectedKind,
     figmaConnected,
     figmaHealth,
+    figmaTeams,
     figmaOAuthUser,
     plaryUserEmail,
     currentUser,
@@ -284,6 +287,7 @@ figma.ui.onmessage = async (msg: {
   collectionName?: string;
   kind?: 'prototype' | 'screen';
   url?: string;
+  teamId?: string;
 }) => {
   if (msg.type === "save-token") {
     await figma.clientStorage.setAsync("plary_token", msg.token);
@@ -303,6 +307,8 @@ figma.ui.onmessage = async (msg: {
     await savePrototype(msg);
   } else if (msg.type === "save-team-url") {
     await saveTeamUrl(msg.url ?? "");
+  } else if (msg.type === "remove-team") {
+    await removeTeam(msg.teamId ?? "");
   } else if (msg.type === "close") {
     figma.closePlugin();
   }
@@ -329,6 +335,26 @@ async function saveTeamUrl(url: string) {
       return;
     }
     // Team registered — retry resolution and refresh the form
+    await init();
+  } catch {
+    figma.ui.postMessage({ type: "team-error", error: "Can't reach Plary. Check your internet connection." });
+  }
+}
+
+async function removeTeam(teamId: string) {
+  const token = await figma.clientStorage.getAsync("plary_token");
+  if (!token || !teamId) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/figma/teams`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ team_id: teamId }),
+    });
+    if (!res.ok) {
+      figma.ui.postMessage({ type: "team-error", error: "Couldn't remove the team. Try again." });
+      return;
+    }
+    // Refresh so the settings list and resolution reflect the removal
     await init();
   } catch {
     figma.ui.postMessage({ type: "team-error", error: "Can't reach Plary. Check your internet connection." });

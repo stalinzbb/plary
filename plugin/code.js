@@ -1,6 +1,6 @@
 "use strict";
 const API_BASE = "https://project-plary.vercel.app";
-const VERSION = "1.0.6";
+const VERSION = "1.0.7";
 figma.showUI(__html__, { width: 360, height: 540, themeColors: true });
 let authPollInterval = null;
 // File key resolution — Community plugins can't read figma.fileKey, so:
@@ -155,7 +155,7 @@ async function startPluginAuth() {
     }
 }
 async function init() {
-    var _a;
+    var _a, _b;
     const token = await figma.clientStorage.getAsync("plary_token");
     const selection = figma.currentPage.selection;
     const node = selection.length === 1 ? selection[0] : null;
@@ -171,11 +171,12 @@ async function init() {
             if (res.ok)
                 collections = await res.json();
         }
-        catch ( /* non-fatal */_b) { /* non-fatal */ }
+        catch ( /* non-fatal */_c) { /* non-fatal */ }
     }
     // Check Figma OAuth connection status (non-fatal)
     let figmaConnected = false;
     let figmaHealth = null;
+    let figmaTeams = [];
     let figmaOAuthUser = null;
     let plaryUserEmail = null;
     if (token) {
@@ -187,13 +188,14 @@ async function init() {
                 const data = await res.json();
                 figmaConnected = data.connected;
                 figmaHealth = (_a = data.health) !== null && _a !== void 0 ? _a : null;
+                figmaTeams = (_b = data.team_ids) !== null && _b !== void 0 ? _b : [];
                 if (data.figma_user)
                     figmaOAuthUser = data.figma_user;
                 if (data.plary_user_email)
                     plaryUserEmail = data.plary_user_email;
             }
         }
-        catch ( /* non-fatal */_c) { /* non-fatal */ }
+        catch ( /* non-fatal */_d) { /* non-fatal */ }
     }
     // Detect active Figma desktop user for mismatch detection
     let currentUser = null;
@@ -202,7 +204,7 @@ async function init() {
         if (u)
             currentUser = { id: u.id, name: u.name, photoUrl: u.photoUrl };
     }
-    catch ( /* currentuser permission */_d) { /* currentuser permission */ }
+    catch ( /* currentuser permission */_e) { /* currentuser permission */ }
     // Compare identities to detect account mismatch
     let accountMismatch = false;
     if ((currentUser === null || currentUser === void 0 ? void 0 : currentUser.id) && figmaOAuthUser && currentUser.id !== figmaOAuthUser.id) {
@@ -226,6 +228,7 @@ async function init() {
         detectedKind,
         figmaConnected,
         figmaHealth,
+        figmaTeams,
         figmaOAuthUser,
         plaryUserEmail,
         currentUser,
@@ -262,7 +265,7 @@ function buildPrototypeUrl(node, fileKey) {
     return `https://www.figma.com/proto/${fileKey}/${encodeURIComponent(figma.currentPage.name)}?${queryParams.join("&")}`;
 }
 figma.ui.onmessage = async (msg) => {
-    var _a;
+    var _a, _b;
     if (msg.type === "save-token") {
         await figma.clientStorage.setAsync("plary_token", msg.token);
         figma.ui.postMessage({ type: "token-saved" });
@@ -286,6 +289,9 @@ figma.ui.onmessage = async (msg) => {
     }
     else if (msg.type === "save-team-url") {
         await saveTeamUrl((_a = msg.url) !== null && _a !== void 0 ? _a : "");
+    }
+    else if (msg.type === "remove-team") {
+        await removeTeam((_b = msg.teamId) !== null && _b !== void 0 ? _b : "");
     }
     else if (msg.type === "close") {
         figma.closePlugin();
@@ -312,6 +318,27 @@ async function saveTeamUrl(url) {
             return;
         }
         // Team registered — retry resolution and refresh the form
+        await init();
+    }
+    catch (_a) {
+        figma.ui.postMessage({ type: "team-error", error: "Can't reach Plary. Check your internet connection." });
+    }
+}
+async function removeTeam(teamId) {
+    const token = await figma.clientStorage.getAsync("plary_token");
+    if (!token || !teamId)
+        return;
+    try {
+        const res = await fetch(`${API_BASE}/api/figma/teams`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ team_id: teamId }),
+        });
+        if (!res.ok) {
+            figma.ui.postMessage({ type: "team-error", error: "Couldn't remove the team. Try again." });
+            return;
+        }
+        // Refresh so the settings list and resolution reflect the removal
         await init();
     }
     catch (_a) {
