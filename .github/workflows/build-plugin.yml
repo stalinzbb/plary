@@ -1,0 +1,52 @@
+name: Build Figma Plugin (Production)
+
+on:
+  push:
+    branches: [main]
+    # Only the files that end up in the published bundle (plus the builder).
+    # Excludes code.js/package.json so the bump commit below can't re-trigger.
+    paths:
+      - plugin/code.ts
+      - plugin/ui.html
+      - plugin/manifest.json
+      - plugin/build.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-commit:
+    # Release automation for the canonical development repo only — it bumps the
+    # version and commits back, which would make mirrors/forks diverge. Forks
+    # that publish their own plugin: change this to your repository name.
+    if: github.repository == 'stalinzbb/project-plary'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: plugin
+        run: npm ci
+
+      - name: Bump plugin version
+        working-directory: plugin
+        run: npm version patch --no-git-tag-version
+
+      - name: Build plugin
+        working-directory: plugin
+        # Forks: set the PLARY_API_BASE repository variable to your deployed URL
+        run: PLARY_API_BASE="${PLARY_API_BASE:-https://project-plary.vercel.app}" npm run build
+        env:
+          PLARY_API_BASE: ${{ vars.PLARY_API_BASE }}
+
+      - name: Commit built code.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add plugin/code.js plugin/package.json plugin/package-lock.json
+          git commit -m "build: plugin v$(node -p "require('./plugin/package.json').version") [skip ci]"
+          git push

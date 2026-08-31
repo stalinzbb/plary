@@ -1,0 +1,22 @@
+{
+  "name": "Plary",
+  "id": "1630710509982375328",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "capabilities": [],
+  "permissions": ["currentuser"],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://project-plary.vercel.app",
+      "https://nwivcvgcmubyenuhnmad.supabase.co"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:3000"
+    ],
+    "reasoning": "Plary saves designs to a web API and uploads thumbnails to Supabase Storage. The production Vercel app and Supabase project are the only required domains. localhost is used for local development only."
+  }
+}

@@ -1,0 +1,29 @@
+name: Plugin Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - plugin/**
+  pull_request:
+    paths:
+      - plugin/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: plugin/package-lock.json
+      - run: npm ci
+      # Forks: set the PLARY_API_BASE repository variable to your deployed URL
+      - run: PLARY_API_BASE="${PLARY_API_BASE:-https://project-plary.vercel.app}" npm run build
+        env:
+          PLARY_API_BASE: ${{ vars.PLARY_API_BASE }}

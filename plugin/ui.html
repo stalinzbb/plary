@@ -1,0 +1,885 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* Theme-aware tokens: Figma injects --figma-color-* when themeColors is on;
+     fallbacks keep it working in plain browsers. */
+  :root {
+    --bg: var(--figma-color-bg, #ffffff);
+    --bg-2: var(--figma-color-bg-secondary, #f5f5f7);
+    --text: var(--figma-color-text, #1a1a1e);
+    --text-2: var(--figma-color-text-secondary, #6b6b76);
+    --text-3: var(--figma-color-text-tertiary, #9a9aa5);
+    --border: var(--figma-color-border, #e4e4e9);
+    --brand: #3c52b6;
+    --brand-hover: #3246a9;
+    --on-brand: #ffffff;
+    --danger: var(--figma-color-text-danger, #dc2626);
+    --radius: 8px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .figma-dark {
+    --brand: #6c88ea;
+    --brand-hover: #7d95ed;
+    --on-brand: #16161a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .hidden { display: none !important; }
+
+  /* ---- motion ----
+     display:none → block restarts these, so every show() replays the
+     entrance without JS. Only opacity/transform animate (GPU-only). */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ---- app shell ---- */
+  .screen { display: flex; flex-direction: column; height: 100%; animation: rise-in 180ms var(--ease-out); }
+  .screen-center {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    height: 100%; padding: 20px;
+  }
+  .app-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  .app-header svg { color: var(--text); }
+  .app-header h1 { font-size: 12px; font-weight: 600; letter-spacing: -0.01em; }
+  .content { flex: 1 1 auto; overflow-y: auto; padding: 12px 14px; }
+  .app-footer {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  /* ---- type ---- */
+  h1 { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+  label {
+    display: block;
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-2);
+    margin-bottom: 5px;
+  }
+  .field { margin-bottom: 12px; }
+  .hint { font-size: 10px; color: var(--text-3); margin-top: 4px; }
+
+  /* ---- controls ---- */
+  input, textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-3); }
+  input:focus, textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 22%, transparent);
+  }
+  textarea { min-height: 48px; }
+  button {
+    width: 100%;
+    padding: 9px 10px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease, transform 160ms var(--ease-out);
+  }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--brand);
+    color: var(--on-brand);
+    box-shadow: 0px 1px 2px rgba(16,17,26,0.24);
+  }
+  .btn-primary:hover { background: var(--brand-hover); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+  .btn-secondary {
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: color-mix(in srgb, var(--bg-2) 60%, var(--border)); }
+
+  /* ---- banners ---- */
+  .error {
+    background: color-mix(in srgb, var(--danger) 10%, var(--bg));
+    color: var(--danger);
+    font-size: 11px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+    margin-bottom: 10px;
+    line-height: 1.4;
+    animation: rise-in 160ms var(--ease-out);
+  }
+  #figma-connection-status {
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-size: 10px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    animation: rise-in 160ms var(--ease-out);
+  }
+  #figma-connection-status a { color: inherit; font-weight: 600; }
+  .status-ok {
+    background: var(--bg-2);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+  }
+  .status-warn {
+    background: color-mix(in srgb, #f59e0b 10%, var(--bg));
+    color: var(--figma-color-text-warning, #92400e);
+    border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+  }
+  .status-error {
+    background: color-mix(in srgb, var(--danger) 10%, var(--bg));
+    color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  }
+
+  /* ---- selection card ---- */
+  .node-status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px;
+    color: var(--text-2);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .node-status #node-info { flex: 1 1 auto; min-width: 0; }
+  .kind-badge {
+    flex: 0 0 auto;
+    background: color-mix(in srgb, var(--brand) 12%, var(--bg));
+    color: var(--brand);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  #more-options { margin-top: 2px; }
+  #more-options summary {
+    list-style: none;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    padding: 4px 0;
+    margin-bottom: 6px;
+    user-select: none;
+  }
+  #more-options summary::-webkit-details-marker { display: none; }
+  #more-options summary::before {
+    content: "";
+    width: 0; height: 0;
+    border-left: 4px solid currentColor;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    transition: transform 160ms var(--ease-out);
+  }
+  #more-options[open] summary::before { transform: rotate(90deg); }
+  #more-options summary:hover { color: var(--text); }
+  .node-status::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--brand);
+  }
+
+  /* ---- badges & helpers ---- */
+  .info-badge {
+    display: inline-block;
+    background: color-mix(in srgb, var(--brand) 12%, var(--bg));
+    color: var(--brand);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-left: 4px;
+    text-transform: none;
+    animation: pop-in 160ms var(--ease-out);
+  }
+  .url-help {
+    background: color-mix(in srgb, var(--brand) 6%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .url-help strong { color: var(--brand); }
+  .url-help ol { margin: 4px 0 0 14px; }
+  .url-help ol li { margin-bottom: 1px; }
+
+  /* ---- segmented control ---- */
+  .kind-toggle {
+    display: flex; gap: 2px;
+    background: var(--bg-2);
+    border-radius: var(--radius);
+    padding: 2px;
+  }
+  .kind-btn {
+    flex: 1;
+    padding: 6px 10px;
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    background: transparent;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .kind-btn.active {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.1), 0px 0px 0px 1px rgba(25,28,33,0.08);
+  }
+
+  /* ---- collection chips ---- */
+  .collections-list {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    max-height: 72px; overflow-y: auto;
+    margin-top: 8px;
+  }
+  .collections-list:empty { display: none; }
+  .collections-list label {
+    display: inline-flex; align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    font-size: 11px; font-weight: 500;
+    text-transform: none; letter-spacing: 0;
+    color: var(--text-2);
+    cursor: pointer;
+    margin-bottom: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .collections-list label:hover { border-color: var(--text-3); }
+  .collections-list label:has(input:checked) {
+    background: color-mix(in srgb, var(--brand) 12%, var(--bg));
+    border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+    color: var(--brand);
+    font-weight: 600;
+  }
+  .collections-list input[type="checkbox"] {
+    position: absolute; opacity: 0; width: 0; height: 0; margin: 0;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--brand);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- login & success ---- */
+  /* First-run and save-success are the two rare screens, so they get the
+     choreography: hero leads, supporting lines follow with a short stagger. */
+  .login-hero .mark { animation: pop-in 200ms var(--ease-out) both; }
+  .login-hero h1 { animation: rise-in 200ms var(--ease-out) 40ms both; }
+  .login-hero p { animation: rise-in 200ms var(--ease-out) 80ms both; }
+  #token-screen .btn-primary { animation: rise-in 200ms var(--ease-out) 120ms both; }
+  .success .check { animation: pop-in 240ms var(--ease-out) 40ms both; }
+  .success p { animation: rise-in 200ms var(--ease-out) 120ms both; }
+  .success .btn-secondary { animation: rise-in 200ms var(--ease-out) 180ms both; }
+  .login-hero { text-align: center; padding: 0 0 20px; }
+  .login-hero .mark {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    margin: 0 auto 14px;
+    border-radius: 13px;
+    background: var(--brand);
+    color: var(--on-brand);
+    box-shadow: 0px 1px 2px rgba(16,17,26,0.24), 0px 8px 16px -4px color-mix(in srgb, var(--brand) 45%, transparent);
+  }
+  .login-hero h1 { margin-bottom: 5px; font-size: 15px; }
+  .login-hero p { color: var(--text-2); font-size: 11px; line-height: 1.55; }
+  .muted-link { color: var(--text-3); text-decoration: underline; cursor: pointer; }
+  .muted-link:hover { color: var(--text-2); }
+  .success { text-align: center; }
+  .success .check {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--brand) 12%, var(--bg));
+    color: var(--brand);
+    font-size: 18px;
+  }
+  .success p { margin-bottom: 8px; color: var(--text-2); }
+  .success a { color: var(--brand); font-weight: 600; text-decoration: none; }
+  .success a:hover { text-decoration: underline; }
+  .success .btn-secondary { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="token-screen" class="screen">
+  <div class="screen-center">
+    <div class="login-hero">
+      <div class="mark"><svg width="22" height="22" viewBox="0 0 120 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M44.5 16V35.5C44.5 37.9853 46.5147 40 49 40H68.5C70.9853 40 73 37.9853 73 35.5V16H79C87.2843 16 94 22.7157 94 31V77.7373C94 84.2964 86.1743 87.6956 81.3809 83.2188L70.0928 72.6748C66.6918 69.498 61.248 70.1527 58.6982 74.0459L38.7744 104.469C34.6914 110.703 25.0001 107.812 25 100.359V31C25 22.7157 31.7157 16 40 16H44.5Z"/><path d="M61 16H67V24.5C67 25.6046 66.1046 26.5 65 26.5H63C61.8954 26.5 61 25.6046 61 24.5V16Z"/></svg></div>
+      <h1>Welcome to Plary</h1>
+      <p>Your personal design library.<br>Sign in to start saving frames.</p>
+    </div>
+    <button class="btn-primary" id="login-plary-btn" style="margin-bottom:8px;">
+      Continue with Plary
+    </button>
+    <p class="hidden" id="auth-status" style="font-size:10px;color:var(--text-3);text-align:center;margin-bottom:8px;line-height:1.4;"></p>
+    <p class="error hidden" id="auth-status-error"></p>
+    <p style="margin-bottom:10px;font-size:10px;text-align:center;">
+      <a href="#" id="show-paste-token" class="muted-link">Paste token instead</a>
+    </p>
+    <div id="paste-token-section" class="hidden">
+      <div class="field">
+        <input type="password" id="token-input" placeholder="Paste token here" />
+      </div>
+      <p class="error hidden" id="token-error"></p>
+      <button class="btn-primary" id="save-token-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="form-screen" class="screen hidden">
+  <div class="app-header"><svg width="14" height="14" viewBox="0 0 120 120" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M44.5 16V35.5C44.5 37.9853 46.5147 40 49 40H68.5C70.9853 40 73 37.9853 73 35.5V16H79C87.2843 16 94 22.7157 94 31V77.7373C94 84.2964 86.1743 87.6956 81.3809 83.2188L70.0928 72.6748C66.6918 69.498 61.248 70.1527 58.6982 74.0459L38.7744 104.469C34.6914 110.703 25.0001 107.812 25 100.359V31C25 22.7157 31.7157 16 40 16H44.5Z"/><path d="M61 16H67V24.5C67 25.6046 66.1046 26.5 65 26.5H63C61.8954 26.5 61 25.6046 61 24.5V16Z"/></svg><h1>Save to Plary</h1></div>
+
+  <div class="content">
+    <div id="figma-connection-status" class="hidden"></div>
+
+    <div class="node-status">
+      <span id="node-info"></span>
+      <span class="kind-badge" id="kind-badge">Screen</span>
+    </div>
+
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" placeholder="Design name" />
+    </div>
+
+    <div class="field">
+      <label for="collection-name">Collections</label>
+      <input type="text" id="collection-name" placeholder="Add or create — press Enter" />
+      <div class="collections-list" id="collections-list"></div>
+    </div>
+
+    <details id="more-options">
+      <summary>More options</summary>
+
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="Optional description"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="figma-url">Figma URL <span class="info-badge hidden" id="url-detected-badge">auto-detected</span></label>
+        <input type="text" id="figma-url" placeholder="https://www.figma.com/design/…" />
+        <div class="url-help hidden" id="url-help-box">
+          <strong>How to get the link:</strong>
+          <ol>
+            <li>Click <strong>Present</strong> (&#9654;) in Figma</li>
+            <li>Copy the URL from the browser tab</li>
+            <li>Paste it here</li>
+          </ol>
+        </div>
+        <div class="url-help hidden" id="team-setup-box">
+          <strong>Auto-detect links</strong>
+          <p id="team-setup-hint" style="margin:2px 0 6px;"></p>
+          <input type="text" id="team-url" placeholder="https://www.figma.com/files/team/…" style="margin-bottom:6px;" />
+          <p class="error hidden" id="team-error"></p>
+          <button class="btn-primary" id="save-team-btn" style="padding:5px;">Save team</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Type</label>
+        <div class="kind-toggle">
+          <button type="button" id="kind-prototype-btn" class="kind-btn active">Prototype</button>
+          <button type="button" id="kind-screen-btn" class="kind-btn">Screen</button>
+        </div>
+        <p class="hint">Detected automatically — override here if needed.</p>
+      </div>
+
+      <p class="hint" id="plugin-version"></p>
+    </details>
+  </div>
+
+  <div class="app-footer">
+    <p class="error hidden" id="save-error"></p>
+    <button class="btn-primary" id="save-btn">Save to Plary</button>
+  </div>
+</div>
+
+<div id="success-screen" class="screen hidden">
+  <div class="screen-center">
+    <div class="success">
+      <div class="check">&#10003;</div>
+      <p>Saved <strong id="saved-title"></strong></p>
+      <p><a href="#" id="view-link" target="_blank">View in Plary</a></p>
+      <button class="btn-secondary" id="save-another-btn">Save another</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let token = null;
+  let savedInit = null;
+  let kind = "screen";
+  let apiBase = "http://localhost:3000"; // Set by init message from code.ts
+
+  const $ = (id) => document.getElementById(id);
+
+  function show(screen) {
+    ["token-screen", "form-screen", "success-screen"].forEach((s) =>
+      $(s).classList.add("hidden"),
+    );
+    $(screen).classList.remove("hidden");
+  }
+
+  function updateKindToggle() {
+    $("kind-prototype-btn").classList.toggle("active", kind === "prototype");
+    $("kind-screen-btn").classList.toggle("active", kind === "screen");
+    $("kind-badge").textContent = kind === "prototype" ? "Prototype" : "Screen";
+  }
+
+  function populateForm(msg) {
+    if (msg.node) {
+      $("title").value = msg.node.name;
+      $("node-info").textContent = msg.node.name + " — " + msg.pageName;
+    } else {
+      $("node-info").textContent = "Select a frame on " + msg.pageName + " to save";
+    }
+
+    if (msg.detectedKind) {
+      kind = msg.detectedKind;
+      updateKindToggle();
+    }
+
+    if (msg.detectedUrl) {
+      $("figma-url").value = msg.detectedUrl;
+      $("url-detected-badge").classList.remove("hidden");
+      $("url-help-box").classList.add("hidden");
+    } else {
+      $("url-help-box").classList.remove("hidden");
+      $("more-options").open = true;
+    }
+    updateAutoDetect(msg.detectedUrl ? null : msg.fileKeyReason);
+
+    if (msg.collections && msg.collections.length > 0) {
+      renderCollectionCheckboxes(msg.collections);
+    }
+  }
+
+  function updateAutoDetect(reason) {
+    var box = $("team-setup-box");
+    var hint = $("team-setup-hint");
+    var showInput = false;
+    $("team-error").classList.add("hidden");
+    $("save-team-btn").disabled = false;
+    $("save-team-btn").textContent = "Save team";
+
+    if (reason === "no_teams") {
+      hint.innerHTML = "Auto-detect works for files in Figma <b>teams</b> — paste your team page link below (one-time setup). For a file in your drafts, paste the file's own link above instead.";
+      showInput = true;
+    } else if (reason === "not_found") {
+      hint.innerHTML = "Couldn't find this file in your registered teams — paste the file's own link above (drafts can't be auto-detected). If it lives in a team you haven't added, paste that team's link below.";
+      showInput = true;
+    } else if (reason === "ambiguous") {
+      hint.innerHTML = "Multiple team files share this name — paste this file's link into the Figma URL field above.";
+    } else if (reason === "rate_limited") {
+      hint.innerHTML = "Figma is rate-limiting lookups right now — paste the file's link above to save. Auto-detect will retry next time you open the plugin.";
+    } else if (reason === "token_unusable") {
+      hint.innerHTML = "Your Figma connection expired — <a href='" + apiBase + "/settings' target='_blank'>reconnect in Plary Settings</a>.";
+    } else if (reason === "needs_reconnect" || reason === "not_connected") {
+      hint.innerHTML = "<a href='" + apiBase + "/settings' target='_blank'>Reconnect Figma in Plary Settings</a> to enable auto-detected links.";
+    } else {
+      box.classList.add("hidden");
+      return;
+    }
+
+    $("team-url").classList.toggle("hidden", !showInput);
+    $("save-team-btn").classList.toggle("hidden", !showInput);
+    box.classList.remove("hidden");
+    $("more-options").open = true;
+  }
+
+  $("save-team-btn").onclick = () => {
+    var url = $("team-url").value.trim();
+    if (!url) {
+      $("team-error").textContent = "Paste your team page link.";
+      $("team-error").classList.remove("hidden");
+      return;
+    }
+    $("team-error").classList.add("hidden");
+    $("save-team-btn").disabled = true;
+    $("save-team-btn").textContent = "Saving...";
+    parent.postMessage({ pluginMessage: { type: "save-team-url", url: url } }, "*");
+  };
+
+  function renderCollectionCheckboxes(collections) {
+    const container = $("collections-list");
+    container.innerHTML = "";
+    collections.forEach(function (l) {
+      var label = document.createElement("label");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.value = l.name;
+      cb.className = "collection-checkbox";
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(" " + l.name));
+      container.appendChild(label);
+    });
+  }
+
+  window.onmessage = (e) => {
+    const msg = e.data.pluginMessage;
+    if (!msg) return;
+
+    if (msg.type === "init") {
+      token = msg.token;
+      savedInit = msg;
+      if (msg.apiBase) apiBase = msg.apiBase;
+      if (msg.version) $("plugin-version").textContent = "Plugin v" + msg.version;
+      updateAccountStatus(msg);
+      if (token) {
+        show("form-screen");
+        populateForm(msg);
+        updateSaveButton(msg.canSave !== false);
+      } else {
+        show("token-screen");
+      }
+    } else if (msg.type === "token-saved") {
+      show("form-screen");
+      if (savedInit) populateForm(savedInit);
+      // Disable save until the fresh init (triggered by code.ts) reports canSave
+      updateSaveButton(false);
+    } else if (msg.type === "save-success") {
+      $("saved-title").textContent = msg.title;
+      $("view-link").href = apiBase + "/prototypes/" + msg.id;
+      show("success-screen");
+    } else if (msg.type === "selection-changed") {
+      if (msg.node) {
+        $("title").value = msg.node.name;
+        $("node-info").textContent = msg.node.name + " — " + msg.pageName;
+      } else {
+        $("title").value = "";
+        $("node-info").textContent = "Select a frame on " + msg.pageName + " to save";
+      }
+      if (msg.detectedKind) {
+        kind = msg.detectedKind;
+        updateKindToggle();
+      }
+      if (msg.detectedUrl) {
+        $("figma-url").value = msg.detectedUrl;
+        $("url-detected-badge").classList.remove("hidden");
+        $("url-help-box").classList.add("hidden");
+      } else {
+        $("figma-url").value = "";
+        $("url-detected-badge").classList.add("hidden");
+        $("url-help-box").classList.remove("hidden");
+        $("more-options").open = true;
+      }
+    } else if (msg.type === "save-error") {
+      $("save-error").textContent = msg.error;
+      $("save-error").classList.remove("hidden");
+    } else if (msg.type === "auth-polling") {
+      var statusEl = $("auth-status");
+      statusEl.classList.remove("hidden");
+      statusEl.innerHTML = '<span class="spinner"></span> Waiting for you to sign in...';
+      $("login-plary-btn").disabled = true;
+      $("login-plary-btn").textContent = "Waiting...";
+    } else if (msg.type === "auth-success") {
+      $("auth-status").classList.add("hidden");
+      $("login-plary-btn").disabled = false;
+      $("login-plary-btn").textContent = "Continue with Plary";
+      // The token is now stored — init has been called again by code.ts
+      // which will send a new "init" message and transition to form screen
+    } else if (msg.type === "auth-expired") {
+      $("auth-status").classList.add("hidden");
+      $("login-plary-btn").disabled = false;
+      $("login-plary-btn").textContent = "Continue with Plary";
+      $("auth-status-error").textContent = "Connection expired. Try again.";
+      $("auth-status-error").classList.remove("hidden");
+    } else if (msg.type === "auth-error") {
+      $("auth-status").classList.add("hidden");
+      $("login-plary-btn").disabled = false;
+      $("login-plary-btn").textContent = "Continue with Plary";
+      $("auth-status-error").textContent = msg.error || "Something went wrong. Try again.";
+      $("auth-status-error").classList.remove("hidden");
+    } else if (msg.type === "team-error") {
+      $("team-error").textContent = msg.error || "Couldn't save the team. Try again.";
+      $("team-error").classList.remove("hidden");
+      $("save-team-btn").disabled = false;
+      $("save-team-btn").textContent = "Save team";
+    } else if (msg.type === "open-auth-url") {
+      window.open(msg.url, "_blank");
+    } else if (msg.type === "logged-out") {
+      // Clear local state and return to login screen
+      token = null;
+      savedInit = null;
+      $("paste-token-section").classList.add("hidden");
+      $("show-paste-token").textContent = "Paste token instead";
+      show("token-screen");
+    }
+  };
+
+  $("login-plary-btn").onclick = () => {
+    $("auth-status-error").classList.add("hidden");
+    var btn = $("login-plary-btn");
+    btn.disabled = true;
+    btn.textContent = "Connecting...";
+    parent.postMessage(
+      { pluginMessage: { type: "start-plugin-auth" } },
+      "*",
+    );
+  };
+
+  $("show-paste-token").onclick = (e) => {
+    e.preventDefault();
+    $("paste-token-section").classList.toggle("hidden");
+    $("show-paste-token").textContent =
+      $("paste-token-section").classList.contains("hidden")
+        ? "Paste token instead"
+        : "Hide token input";
+  };
+
+  $("save-token-btn").onclick = () => {
+    const val = $("token-input").value.trim();
+    if (!val) {
+      $("token-error").textContent = "Enter a token.";
+      $("token-error").classList.remove("hidden");
+      return;
+    }
+    parent.postMessage(
+      { pluginMessage: { type: "save-token", token: val } },
+      "*",
+    );
+  };
+
+  $("kind-prototype-btn").onclick = () => {
+    kind = "prototype";
+    updateKindToggle();
+  };
+  $("kind-screen-btn").onclick = () => {
+    kind = "screen";
+    updateKindToggle();
+  };
+
+  function getCheckedCollections() {
+    var names = [];
+    var checkboxes = document.querySelectorAll("#collections-list .collection-checkbox");
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) names.push(cb.value);
+    });
+    var newName = $("collection-name").value.trim();
+    if (newName && !names.includes(newName)) names.push(newName);
+    return names;
+  }
+
+  // Enter key adds new collection to the checkbox list
+  $("collection-name").onkeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      var name = $("collection-name").value.trim();
+      if (name) {
+        // Add to checkboxes
+        var exists = false;
+        var checkboxes = document.querySelectorAll("#collections-list .collection-checkbox");
+        checkboxes.forEach(function (cb) {
+          if (cb.value === name) { cb.checked = true; exists = true; }
+        });
+        if (!exists) {
+          var label = document.createElement("label");
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = name;
+          cb.className = "collection-checkbox";
+          cb.checked = true;
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(" " + name));
+          $("collections-list").appendChild(label);
+        }
+        $("collection-name").value = "";
+      }
+    }
+  };
+
+  function updateSaveButton(canSave) {
+    var btn = $("save-btn");
+    btn.className = "btn-primary";
+    if (canSave) {
+      btn.disabled = false;
+      btn.textContent = "Save to Plary";
+    } else {
+      btn.disabled = true;
+      btn.textContent = "Connect Figma to Save";
+    }
+  }
+
+  $("save-btn").onclick = () => {
+    $("save-error").classList.add("hidden");
+    var btn = $("save-btn");
+    if (btn.disabled) {
+      $("save-error").textContent = "Connect your Figma account in Plary Settings before saving.";
+      $("save-error").classList.remove("hidden");
+      return;
+    }
+    if (!$("figma-url").value.trim()) {
+      $("save-error").textContent =
+        "Add a Figma link first — paste this file's URL above, or set up auto-detect in More options.";
+      $("save-error").classList.remove("hidden");
+      $("more-options").open = true;
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    parent.postMessage(
+      {
+        pluginMessage: {
+          type: "save-prototype",
+          title: $("title").value.trim(),
+          description: $("description").value.trim(),
+          figmaUrl: $("figma-url").value.trim(),
+          collectionNames: getCheckedCollections(),
+          kind: kind,
+        },
+      },
+      "*",
+    );
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = "Save to Plary";
+    }, 3000);
+  };
+
+  function htmlEscape(str) {
+    if (!str) return "";
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  function updateAccountStatus(msg) {
+    var statusEl = $("figma-connection-status");
+    var lines = [];
+
+    // Always show which Plary account the token saves to
+    if (msg.plaryUserEmail) {
+      lines.push("Saving to: <b>" + htmlEscape(msg.plaryUserEmail) + "</b>");
+    }
+
+    if (msg.accountMismatch) {
+      // Red: OAuth-connected Figma account doesn't match active Figma desktop user
+      if (msg.currentUser) {
+        lines.push("Current Figma: " + htmlEscape(msg.currentUser.name));
+      }
+      if (msg.figmaOAuthUser) {
+        lines.push("Connected Figma: " + htmlEscape(msg.figmaOAuthUser.display_name || msg.figmaOAuthUser.email));
+      }
+      if (lines.length > 1) {
+        lines.splice(1, 0, "<b style='color:#dc2626'>Account mismatch</b>");
+      }
+      statusEl.className = "status-error";
+    } else if (msg.figmaOAuthUser && msg.figmaHealth === "needs_reconnect") {
+      // Connection exists but can't do what the product needs (stale scopes
+      // or unusable tokens) — say so at the top, not buried in More options (#49)
+      lines.push("<b>Reconnect Figma</b>");
+      lines.push("Plary's Figma permissions changed — auto-detected links won't work until you reconnect.");
+      lines.push("<a href='" + apiBase + "/settings' target='_blank'>Reconnect in Plary Settings</a>");
+      statusEl.className = "status-warn";
+    } else if (msg.figmaOAuthUser) {
+      // Healthy: one compact line, no noise
+      lines = [];
+      if (msg.plaryUserEmail) {
+        lines.push("Saving to <b>" + htmlEscape(msg.plaryUserEmail) + "</b>");
+      } else {
+        lines.push("Figma: " + htmlEscape(msg.figmaOAuthUser.display_name || msg.figmaOAuthUser.email));
+      }
+      statusEl.className = "status-ok";
+    } else if (msg.token) {
+      // Yellow/Orange: no Figma OAuth connected — saves are blocked
+      lines.push("<b>Figma account required</b>");
+      if (msg.currentUser) {
+        lines.push("Signed into Figma as: " + htmlEscape(msg.currentUser.name));
+      }
+      if (msg.plaryUserEmail) {
+        lines.push("Plary account: " + htmlEscape(msg.plaryUserEmail));
+      }
+      lines.push("<a href='" + apiBase + "/settings' target='_blank'>Connect Figma in Plary Settings</a> to enable saves");
+      statusEl.className = "status-warn";
+    }
+
+    if (lines.length > 0) {
+      statusEl.innerHTML = lines.join("<br>");
+      if (msg.token || msg.plaryUserEmail) {
+        statusEl.innerHTML +=
+          ' &middot; <a href="#" id="logout-link" style="color:inherit;font-size:10px;text-decoration:underline;" onclick="document.getElementById(\'logout-link\').onclick=null;parent.postMessage({pluginMessage:{type:\'logout\'}},\'*\');return false;">Log out</a>';
+      }
+      statusEl.classList.remove("hidden");
+    } else {
+      statusEl.classList.add("hidden");
+    }
+  }
+
+  $("save-another-btn").onclick = () => {
+    $("title").value = "";
+    $("description").value = "";
+    $("collection-name").value = "";
+    kind = "screen";
+    updateKindToggle();
+    show("form-screen");
+  };
+</script>
+</body>
+</html>
