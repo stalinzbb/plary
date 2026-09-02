@@ -19,7 +19,7 @@ jobs:
     # Release automation for the canonical development repo only — it bumps the
     # version and commits back, which would make mirrors/forks diverge. Forks
     # that publish their own plugin: change this to your repository name.
-    if: github.repository == 'stalinzbb/project-plary'
+    if: github.repository == 'stalinzbb/plary-dev'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

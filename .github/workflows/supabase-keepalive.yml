@@ -11,7 +11,7 @@ jobs:
   ping:
     # Upstream-only: forks should delete this workflow or point it at their own
     # deployment — otherwise their cron would ping the upstream API daily.
-    if: github.repository == 'stalinzbb/project-plary'
+    if: github.repository == 'stalinzbb/plary-dev'
     runs-on: ubuntu-latest
     steps:
       - name: Ping DB-touching endpoint

@@ -37,7 +37,7 @@ The prototype does not include teams, organizations, roles, sharing, approvals, 
 ## Repository Structure
 
 ```txt
-project-plary/
+plary/
   web/         Next.js App Router web app
   plugin/      Figma plugin built with TypeScript and plain HTML
   supabase/    Database schema and migrations
