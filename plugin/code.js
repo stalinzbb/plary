@@ -1,6 +1,6 @@
 "use strict";
 const API_BASE = "https://project-plary.vercel.app";
-const VERSION = "1.0.7";
+const VERSION = "1.0.8";
 figma.showUI(__html__, { width: 360, height: 540, themeColors: true });
 let authPollInterval = null;
 // File key resolution — Community plugins can't read figma.fileKey, so:
@@ -18,8 +18,17 @@ function extractFileKey(url) {
 async function resolveFileKey(token) {
     // Private/dev-mode builds with enablePrivatePluginApi in manifest.json read the
     // key directly (self-hosted forks); Community builds get undefined and fall through.
-    if (figma.fileKey) {
-        resolvedFileKey = figma.fileKey;
+    // Guarded: Figma throws (rather than returning undefined) in some contexts, and an
+    // uncaught throw here kills init() — the UI never leaves the login screen.
+    let privateKey;
+    try {
+        privateKey = figma.fileKey;
+    }
+    catch (_a) {
+        privateKey = undefined;
+    }
+    if (privateKey) {
+        resolvedFileKey = privateKey;
         fileKeyReason = null;
         return;
     }
@@ -54,7 +63,7 @@ async function resolveFileKey(token) {
             fileKeyReason = data.status;
         }
     }
-    catch (_a) {
+    catch (_b) {
         fileKeyReason = "error";
     }
 }

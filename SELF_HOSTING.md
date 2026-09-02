@@ -95,9 +95,15 @@ cd web && npm install && npm run dev
 Open http://localhost:3000, sign in with a magic link, and connect Figma from
 Settings to confirm the OAuth app works.
 
-Deploy: any Next.js host works. On Vercel, set the root directory to `web/` and
-add the same environment variables in the dashboard. After deploying, add the
-production redirect URLs from steps 1.4 and 2.3.
+Deploy: any Next.js host works. On Vercel: import the repo, set **Root
+Directory** to `web` *on the import screen before the first deploy*, and add
+the same environment variables. After deploying, add the production redirect
+URLs from steps 1.4 and 2.3.
+
+> Team accounts get a `<project>-<team>.vercel.app` URL; the short
+> `<project>.vercel.app` alias is attached automatically after the first
+> successful production deploy. Configure your manifest/OAuth/Supabase URLs
+> against whichever one you intend to keep.
 
 Optional login customization:
 
@@ -112,8 +118,13 @@ Optional login customization:
 
 Edit [`plugin/manifest.json`](plugin/manifest.json):
 
-1. **Delete the `id` line.** It identifies the upstream published plugin; Figma
-   assigns yours a new one.
+1. **Replace the `id`** with one Figma generates for you: in the Figma desktop
+   app, **Plugins → Development → New plugin…** → any name, save it anywhere,
+   and copy the `"id"` from the `manifest.json` it creates (the throwaway
+   folder can be deleted). Don't just remove the line — a plugin without an
+   `id` runs, but `figma.clientStorage` throws
+   (`Cannot access client storage without a plugin ID`), so login silently
+   never completes.
 2. Replace `networkAccess.allowedDomains` with your two URLs:
    ```json
    "allowedDomains": [
@@ -180,5 +191,13 @@ gated to the upstream repo and does nothing in forks by default).
   Authentication → URL Configuration.
 - **Thumbnails 404**: the `thumbnails` bucket is missing or not public — re-run
   `setup.sql`.
+- **Vercel: `The Edge Function "middleware" is referencing unsupported modules: @/lib/api/session`**:
+  the project's Framework Preset is "Other" (happens when Root Directory was
+  fixed after the first import). Settings → Build & Deployment → Framework
+  Preset → Next.js, then redeploy. `web/vercel.json` pins this for new imports.
+- **Plugin stuck on "Waiting for you to sign in..." after the browser says
+  Connected** (plugin console: `Cannot access client storage without a plugin
+  ID`): `manifest.json` has no `id`. Generate one via Plugins → Development →
+  New plugin (step 4.1) and re-import the manifest.
 - **Plugin says logged out after switching between local and deployed builds**:
   both builds must share the same `PLARY_TOKEN_SECRET` (and database).

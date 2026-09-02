@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserId } from "@/lib/api/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getValidAccessToken } from "@/lib/figma/connections";
-import { PROJECT_METADATA_SCOPE } from "@/lib/figma/oauth";
+import { PROJECT_METADATA_SCOPE, LEGACY_PROJECT_METADATA_SCOPE } from "@/lib/figma/oauth";
 
 const FIGMA_API_BASE = "https://api.figma.com/v1";
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     .single();
 
   if (!conn) return NextResponse.json({ status: "not_connected" });
-  if (!conn.scopes?.includes(PROJECT_METADATA_SCOPE)) {
+  if (!conn.scopes?.includes(PROJECT_METADATA_SCOPE) && !conn.scopes?.includes(LEGACY_PROJECT_METADATA_SCOPE)) {
     // Connection predates the project-metadata scope — user must reconnect Figma
     return NextResponse.json({ status: "needs_reconnect" });
   }

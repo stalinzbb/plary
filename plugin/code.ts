@@ -22,8 +22,12 @@ function extractFileKey(url: string): string | null {
 async function resolveFileKey(token: string | null): Promise<void> {
   // Private/dev-mode builds with enablePrivatePluginApi in manifest.json read the
   // key directly (self-hosted forks); Community builds get undefined and fall through.
-  if (figma.fileKey) {
-    resolvedFileKey = figma.fileKey;
+  // Guarded: Figma throws (rather than returning undefined) in some contexts, and an
+  // uncaught throw here kills init() — the UI never leaves the login screen.
+  let privateKey: string | undefined;
+  try { privateKey = figma.fileKey; } catch { privateKey = undefined; }
+  if (privateKey) {
+    resolvedFileKey = privateKey;
     fileKeyReason = null;
     return;
   }

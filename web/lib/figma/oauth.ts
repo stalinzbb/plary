@@ -26,10 +26,13 @@ function getOAuthCredentials(): { clientId: string; clientSecret: string } {
   return { clientId, clientSecret };
 }
 
-// Lets resolve-file enumerate a team's projects and their files. Figma calls this
-// scope project_metadata:read — an earlier "projects:read" guess is not a real
-// Figma scope and fails the whole authorization with "Invalid scopes for app".
-export const PROJECT_METADATA_SCOPE = "project_metadata:read";
+// Lets resolve-file enumerate a team's folders (formerly "projects") and their
+// files. Figma renamed the scope when projects became nested folders; apps
+// created after the rename can only grant the new name, and requesting a scope
+// the app doesn't have fails the whole authorization with "Invalid scopes for app".
+export const PROJECT_METADATA_SCOPE = "folder_metadata:read";
+// Connections authorized before the rename stored the old name — still valid.
+export const LEGACY_PROJECT_METADATA_SCOPE = "project_metadata:read";
 
 // Single source of truth: requested here, stored verbatim by the OAuth callback.
 export const FIGMA_SCOPES = [
