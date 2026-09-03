@@ -113,7 +113,6 @@ export async function getConnectionStatus(
       };
       health: string | null;
       scopes: string[];
-      team_ids: string[];
       expires_at: string | null;
     }
 > {
@@ -121,7 +120,7 @@ export async function getConnectionStatus(
   const { data, error } = await supabase
     .from("figma_connections")
     .select(
-      "figma_user_id, figma_email, figma_display_name, figma_avatar_url, health, scopes, team_ids, expires_at",
+      "figma_user_id, figma_email, figma_display_name, figma_avatar_url, health, scopes, expires_at",
     )
     .eq("user_id", userId)
     .single();
@@ -147,7 +146,6 @@ export async function getConnectionStatus(
     },
     health,
     scopes,
-    team_ids: data.team_ids ?? [],
     expires_at: data.expires_at,
   };
 }

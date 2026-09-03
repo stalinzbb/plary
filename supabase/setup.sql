@@ -70,7 +70,6 @@ create table if not exists figma_connections (
   expires_at timestamptz,
   health text not null default 'connected'
     check (health in ('connected', 'needs_reconnect')),
-  team_ids text[] not null default '{}',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -89,13 +88,8 @@ create table if not exists oauth_states (
 create index if not exists oauth_states_state_idx on oauth_states (state);
 create index if not exists oauth_states_created_at_idx on oauth_states (created_at);
 
--- Per-user cache of team file listings for resolve-file
-create table if not exists figma_file_cache (
-  user_id uuid references auth.users not null primary key,
-  team_ids text[] not null,
-  files jsonb not null,
-  fetched_at timestamptz not null
-);
+-- Pre-private-mode installs also had figma_file_cache and figma_connections.team_ids
+-- (Community-mode file-key resolution, dropped 2026-09-02 — see DECISIONS.md).
 
 -- ── Sessions & plugin auth ───────────────────────────────────────────────────
 

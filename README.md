@@ -213,7 +213,7 @@ Import it into Figma:
 4. Run **Plugins -> Development -> Plary**.
 5. Click "Login with Plary" — a browser opens to authorize and the plugin receives a token automatically. (Pasting a token from the web app Settings page remains available as a fallback.)
 
-File-key resolution depends on how the plugin is distributed. The Community build cannot read `figma.fileKey` (a private-plugin API), so it resolves the key via a server-side name match against the user's registered Figma teams, with a paste-the-file-URL fallback. Self-hosted forks imported in development mode are private plugins: add `"enablePrivatePluginApi": true` to `manifest.json` and the plugin reads `figma.fileKey` directly — no team registration or URL pasting (see [SELF_HOSTING.md](SELF_HOSTING.md)).
+The plugin runs in private-plugin mode only: `manifest.json` sets `"enablePrivatePluginApi": true` and the plugin reads `figma.fileKey` directly. It is imported in development mode or published org-privately, never to Figma Community (see [SELF_HOSTING.md](SELF_HOSTING.md) and DECISIONS.md).
 
 ## API
 
@@ -394,7 +394,7 @@ For a deployed environment:
 
 ## Known Limitations
 
-- The plugin is a development plugin, not a published Figma Community plugin.
+- The plugin is a private plugin (development import or org-private publish), not a Figma Community plugin — Community plugins cannot read `figma.fileKey`.
 - The plugin saves one selected node at a time.
 - Thumbnail upload is best-effort and can lag behind the initial save.
 - Figma embeds require the underlying Figma file to be viewable by the user.

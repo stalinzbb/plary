@@ -1,70 +1,20 @@
 "use strict";
 const API_BASE = "https://project-plary.vercel.app";
-const VERSION = "1.0.8";
+const VERSION = "1.0.9";
 figma.showUI(__html__, { width: 360, height: 540, themeColors: true });
 let authPollInterval = null;
-// File key resolution — Community plugins can't read figma.fileKey, so:
-// 1. document pluginData cache (set by a previous resolution or pasted URL)
-// 2. server name-match against the user's registered Figma teams (Option B)
-// 3. user pastes the file URL; the key is extracted and cached (Option A)
-// ponytail: the cached key goes stale if the user duplicates the file (the
-// copy keeps pluginData but has a new key) — pasting a fresh URL fixes it
+// Private-plugin mode only (see DECISIONS.md 2026-09-02): the file key comes
+// straight from figma.fileKey, which needs enablePrivatePluginApi in manifest.json.
 let resolvedFileKey = null;
-let fileKeyReason = null;
-function extractFileKey(url) {
-    const m = url.match(/figma\.com\/(?:design|file|proto|board)\/([A-Za-z0-9]+)/);
-    return m ? m[1] : null;
-}
-async function resolveFileKey(token) {
-    // Private/dev-mode builds with enablePrivatePluginApi in manifest.json read the
-    // key directly (self-hosted forks); Community builds get undefined and fall through.
+function resolveFileKey() {
+    var _a;
     // Guarded: Figma throws (rather than returning undefined) in some contexts, and an
     // uncaught throw here kills init() — the UI never leaves the login screen.
-    let privateKey;
     try {
-        privateKey = figma.fileKey;
-    }
-    catch (_a) {
-        privateKey = undefined;
-    }
-    if (privateKey) {
-        resolvedFileKey = privateKey;
-        fileKeyReason = null;
-        return;
-    }
-    const cached = figma.root.getPluginData("plary_file_key");
-    if (cached) {
-        resolvedFileKey = cached;
-        fileKeyReason = null;
-        return;
-    }
-    if (!token) {
-        fileKeyReason = "no_token";
-        return;
-    }
-    try {
-        const res = await fetch(`${API_BASE}/api/figma/resolve-file`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ file_name: figma.root.name }),
-        });
-        if (!res.ok) {
-            fileKeyReason = "error";
-            return;
-        }
-        const data = await res.json();
-        if (data.status === "resolved" && data.file_key) {
-            figma.root.setPluginData("plary_file_key", data.file_key);
-            resolvedFileKey = data.file_key;
-            fileKeyReason = null;
-        }
-        else {
-            // no_teams | not_found | ambiguous | not_connected | needs_reconnect | token_unusable | rate_limited
-            fileKeyReason = data.status;
-        }
+        resolvedFileKey = (_a = figma.fileKey) !== null && _a !== void 0 ? _a : null;
     }
     catch (_b) {
-        fileKeyReason = "error";
+        resolvedFileKey = null;
     }
 }
 function nodeIsPrototype(node) {
@@ -97,8 +47,6 @@ function detectSelection(node) {
     let detectedUrl = null;
     let detectedKind = "screen";
     if (node) {
-        // Kind detection needs no file key — it broke when it was gated behind
-        // resolution (which often fails without the private-API file key).
         if (nodeIsPrototype(node)) {
             detectedKind = "prototype";
         }
@@ -164,11 +112,11 @@ async function startPluginAuth() {
     }
 }
 async function init() {
-    var _a, _b;
+    var _a;
     const token = await figma.clientStorage.getAsync("plary_token");
     const selection = figma.currentPage.selection;
     const node = selection.length === 1 ? selection[0] : null;
-    await resolveFileKey(token !== null && token !== void 0 ? token : null);
+    resolveFileKey();
     const { detectedUrl, detectedKind } = detectSelection(node);
     // Fetch existing collections for datalist suggestions
     let collections = [];
@@ -180,12 +128,11 @@ async function init() {
             if (res.ok)
                 collections = await res.json();
         }
-        catch ( /* non-fatal */_c) { /* non-fatal */ }
+        catch ( /* non-fatal */_b) { /* non-fatal */ }
     }
     // Check Figma OAuth connection status (non-fatal)
     let figmaConnected = false;
     let figmaHealth = null;
-    let figmaTeams = [];
     let figmaOAuthUser = null;
     let plaryUserEmail = null;
     if (token) {
@@ -197,14 +144,13 @@ async function init() {
                 const data = await res.json();
                 figmaConnected = data.connected;
                 figmaHealth = (_a = data.health) !== null && _a !== void 0 ? _a : null;
-                figmaTeams = (_b = data.team_ids) !== null && _b !== void 0 ? _b : [];
                 if (data.figma_user)
                     figmaOAuthUser = data.figma_user;
                 if (data.plary_user_email)
                     plaryUserEmail = data.plary_user_email;
             }
         }
-        catch ( /* non-fatal */_d) { /* non-fatal */ }
+        catch ( /* non-fatal */_c) { /* non-fatal */ }
     }
     // Detect active Figma desktop user for mismatch detection
     let currentUser = null;
@@ -213,7 +159,7 @@ async function init() {
         if (u)
             currentUser = { id: u.id, name: u.name, photoUrl: u.photoUrl };
     }
-    catch ( /* currentuser permission */_e) { /* currentuser permission */ }
+    catch ( /* currentuser permission */_d) { /* currentuser permission */ }
     // Compare identities to detect account mismatch
     let accountMismatch = false;
     if ((currentUser === null || currentUser === void 0 ? void 0 : currentUser.id) && figmaOAuthUser && currentUser.id !== figmaOAuthUser.id) {
@@ -231,13 +177,12 @@ async function init() {
             : null,
         pageName: figma.currentPage.name,
         fileKey: resolvedFileKey,
-        fileKeyReason,
+        fileKeyError: resolvedFileKey ? null : "This build needs enablePrivatePluginApi in manifest.json",
         detectedUrl,
         collections,
         detectedKind,
         figmaConnected,
         figmaHealth,
-        figmaTeams,
         figmaOAuthUser,
         plaryUserEmail,
         currentUser,
@@ -274,7 +219,6 @@ function buildPrototypeUrl(node, fileKey) {
     return `https://www.figma.com/proto/${fileKey}/${encodeURIComponent(figma.currentPage.name)}?${queryParams.join("&")}`;
 }
 figma.ui.onmessage = async (msg) => {
-    var _a, _b;
     if (msg.type === "save-token") {
         await figma.clientStorage.setAsync("plary_token", msg.token);
         figma.ui.postMessage({ type: "token-saved" });
@@ -296,64 +240,10 @@ figma.ui.onmessage = async (msg) => {
     else if (msg.type === "save-prototype") {
         await savePrototype(msg);
     }
-    else if (msg.type === "save-team-url") {
-        await saveTeamUrl((_a = msg.url) !== null && _a !== void 0 ? _a : "");
-    }
-    else if (msg.type === "remove-team") {
-        await removeTeam((_b = msg.teamId) !== null && _b !== void 0 ? _b : "");
-    }
     else if (msg.type === "close") {
         figma.closePlugin();
     }
 };
-async function saveTeamUrl(url) {
-    const token = await figma.clientStorage.getAsync("plary_token");
-    if (!token) {
-        figma.ui.postMessage({ type: "team-error", error: "Log in to Plary first." });
-        return;
-    }
-    try {
-        const res = await fetch(`${API_BASE}/api/figma/teams`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ team_url: url }),
-        });
-        if (!res.ok) {
-            const data = await res.json().catch(() => null);
-            const message = (data === null || data === void 0 ? void 0 : data.error_code) === "invalid_team_url"
-                ? "That doesn't look like a Figma team link. Copy it from your team page URL."
-                : "Couldn't save the team. Try again.";
-            figma.ui.postMessage({ type: "team-error", error: message });
-            return;
-        }
-        // Team registered — retry resolution and refresh the form
-        await init();
-    }
-    catch (_a) {
-        figma.ui.postMessage({ type: "team-error", error: "Can't reach Plary. Check your internet connection." });
-    }
-}
-async function removeTeam(teamId) {
-    const token = await figma.clientStorage.getAsync("plary_token");
-    if (!token || !teamId)
-        return;
-    try {
-        const res = await fetch(`${API_BASE}/api/figma/teams`, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ team_id: teamId }),
-        });
-        if (!res.ok) {
-            figma.ui.postMessage({ type: "team-error", error: "Couldn't remove the team. Try again." });
-            return;
-        }
-        // Refresh so the settings list and resolution reflect the removal
-        await init();
-    }
-    catch (_a) {
-        figma.ui.postMessage({ type: "team-error", error: "Can't reach Plary. Check your internet connection." });
-    }
-}
 function errorKind(e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.includes("Failed to fetch") || msg.includes("Network")) {
@@ -379,22 +269,11 @@ async function savePrototype(msg) {
     }
     const selection = figma.currentPage.selection;
     const node = selection.length === 1 ? selection[0] : null;
-    // Option A: a pasted Figma URL carries the file key — cache it in the
-    // document so future opens auto-detect without pasting again
-    if (!resolvedFileKey && msg.figmaUrl) {
-        const pasted = extractFileKey(msg.figmaUrl);
-        if (pasted) {
-            figma.root.setPluginData("plary_file_key", pasted);
-            resolvedFileKey = pasted;
-            fileKeyReason = null;
-        }
-    }
     const fileKey = resolvedFileKey !== null && resolvedFileKey !== void 0 ? resolvedFileKey : undefined;
-    // Without a file key or URL the record can't embed or link — block the save
-    if (!fileKey && !msg.figmaUrl) {
+    if (!fileKey) {
         figma.ui.postMessage({
             type: "save-error",
-            error: "Add a Figma link first — paste this file's URL, or set up auto-detect in More options.",
+            error: "This build needs enablePrivatePluginApi in manifest.json",
         });
         return;
     }

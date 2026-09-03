@@ -5,10 +5,15 @@
   "main": "code.js",
   "ui": "ui.html",
   "capabilities": [],
-  "permissions": ["currentuser"],
+  "permissions": [
+    "currentuser"
+  ],
   "enableProposedApi": false,
+  "enablePrivatePluginApi": true,
   "documentAccess": "dynamic-page",
-  "editorType": ["figma"],
+  "editorType": [
+    "figma"
+  ],
   "networkAccess": {
     "allowedDomains": [
       "https://project-plary.vercel.app",

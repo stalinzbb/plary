@@ -62,8 +62,7 @@ identity verification). Your deployment needs its own OAuth app.
    creator; every other user's connect flow fails at the callback.
 
 Scopes are requested at authorization time (nothing to configure in the console):
-`current_user:read`, `file_metadata:read`, `file_content:read`,
-`project_metadata:read`.
+`current_user:read`, `file_metadata:read`, `file_content:read`.
 
 ## 3. Web app
 
@@ -132,9 +131,10 @@ Edit [`plugin/manifest.json`](plugin/manifest.json):
      "https://<your-project-ref>.supabase.co"
    ]
    ```
-3. Add `"enablePrivatePluginApi": true`. Private/development plugins may read
-   `figma.fileKey` directly, so your users skip the file-key workarounds
-   (team registration, URL pasting) that the Community build needs.
+
+`enablePrivatePluginApi` is already `true` in the tracked manifest — leave it.
+Private/development plugins read `figma.fileKey` directly; the plugin does not
+work as a Community plugin.
 
 Build from the repo root:
 
@@ -199,5 +199,8 @@ gated to the upstream repo and does nothing in forks by default).
   Connected** (plugin console: `Cannot access client storage without a plugin
   ID`): `manifest.json` has no `id`. Generate one via Plugins → Development →
   New plugin (step 4.1) and re-import the manifest.
+- **Plugin shows "This build needs enablePrivatePluginApi in manifest.json"**:
+  the flag was removed from `manifest.json`, or the plugin was published to
+  Community. Restore `"enablePrivatePluginApi": true` and re-import.
 - **Plugin says logged out after switching between local and deployed builds**:
   both builds must share the same `PLARY_TOKEN_SECRET` (and database).

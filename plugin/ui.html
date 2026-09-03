@@ -239,19 +239,6 @@
     text-transform: none;
     animation: pop-in 160ms var(--ease-out);
   }
-  .url-help {
-    background: color-mix(in srgb, var(--brand) 6%, var(--bg));
-    border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);
-    border-radius: var(--radius);
-    padding: 7px 10px;
-    margin-top: 8px;
-    font-size: 10px;
-    color: var(--text-2);
-    line-height: 1.5;
-  }
-  .url-help strong { color: var(--brand); }
-  .url-help ol { margin: 4px 0 0 14px; }
-  .url-help ol li { margin-bottom: 1px; }
 
   /* ---- segmented control ---- */
   .kind-toggle {
@@ -342,14 +329,6 @@
   .dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; }
   .dot-ok { background: #16a34a; }
   .dot-warn { background: #f59e0b; }
-  .remove-team {
-    width: auto;
-    padding: 2px 5px;
-    background: transparent;
-    color: var(--text-3);
-    font-size: 11px;
-  }
-  .remove-team:hover { color: var(--danger); }
 
   .spinner {
     display: inline-block;
@@ -462,22 +441,8 @@
 
       <div class="field">
         <label for="figma-url">Figma URL <span class="info-badge hidden" id="url-detected-badge">auto-detected</span></label>
-        <input type="text" id="figma-url" placeholder="https://www.figma.com/design/…" />
-        <div class="url-help hidden" id="url-help-box">
-          <strong>How to get the link:</strong>
-          <ol>
-            <li>Click <strong>Present</strong> (&#9654;) in Figma</li>
-            <li>Copy the URL from the browser tab</li>
-            <li>Paste it here</li>
-          </ol>
-        </div>
-        <div class="url-help hidden" id="team-setup-box">
-          <strong>Auto-detect links</strong>
-          <p id="team-setup-hint" style="margin:2px 0 6px;"></p>
-          <input type="text" id="team-url" placeholder="https://www.figma.com/files/team/…" style="margin-bottom:6px;" />
-          <p class="error hidden" id="team-error"></p>
-          <button class="btn-primary" id="save-team-btn" style="padding:5px;">Save team</button>
-        </div>
+        <input type="text" id="figma-url" readonly placeholder="Select a frame to detect its link" />
+        <p class="error hidden" id="file-key-error"></p>
       </div>
 
       <div class="field">
@@ -510,14 +475,6 @@
     <div class="field">
       <label>Figma connection</label>
       <div class="settings-card" id="settings-figma"></div>
-    </div>
-    <div class="field">
-      <label>Auto-detect teams</label>
-      <div class="settings-card" id="settings-teams"></div>
-      <input type="text" id="settings-team-url" placeholder="https://www.figma.com/files/team/…" style="margin-top:8px;" />
-      <p class="error hidden" id="settings-team-error" style="margin-top:8px;margin-bottom:0;"></p>
-      <button class="btn-secondary" id="settings-team-add" style="margin-top:8px;">Add team</button>
-      <p class="hint">Auto-detect matches this file's name against files in your registered teams.</p>
     </div>
     <p class="hint" id="settings-version" style="text-align:center;"></p>
   </div>
@@ -568,66 +525,20 @@
       updateKindToggle();
     }
 
-    if (msg.detectedUrl) {
-      $("figma-url").value = msg.detectedUrl;
-      $("url-detected-badge").classList.remove("hidden");
-      $("url-help-box").classList.add("hidden");
-    } else {
-      $("url-help-box").classList.remove("hidden");
+    $("figma-url").value = msg.detectedUrl || "";
+    $("url-detected-badge").classList.toggle("hidden", !msg.detectedUrl);
+    if (msg.fileKeyError) {
+      $("file-key-error").textContent = msg.fileKeyError;
+      $("file-key-error").classList.remove("hidden");
       $("more-options").open = true;
+    } else {
+      $("file-key-error").classList.add("hidden");
     }
-    updateAutoDetect(msg.detectedUrl ? null : msg.fileKeyReason);
 
     if (msg.collections && msg.collections.length > 0) {
       renderCollectionCheckboxes(msg.collections);
     }
   }
-
-  function updateAutoDetect(reason) {
-    var box = $("team-setup-box");
-    var hint = $("team-setup-hint");
-    var showInput = false;
-    $("team-error").classList.add("hidden");
-    $("save-team-btn").disabled = false;
-    $("save-team-btn").textContent = "Save team";
-
-    if (reason === "no_teams") {
-      hint.innerHTML = "Auto-detect works for files in Figma <b>teams</b> — paste your team page link below (one-time setup). For a file in your drafts, paste the file's own link above instead.";
-      showInput = true;
-    } else if (reason === "not_found") {
-      hint.innerHTML = "Couldn't find this file in your registered teams — paste the file's own link above (drafts can't be auto-detected). If it lives in a team you haven't added, paste that team's link below.";
-      showInput = true;
-    } else if (reason === "ambiguous") {
-      hint.innerHTML = "Multiple team files share this name — paste this file's link into the Figma URL field above.";
-    } else if (reason === "rate_limited") {
-      hint.innerHTML = "Figma is rate-limiting lookups right now — paste the file's link above to save. Auto-detect will retry next time you open the plugin.";
-    } else if (reason === "token_unusable") {
-      hint.innerHTML = "Your Figma connection expired — <a href='" + apiBase + "/settings' target='_blank'>reconnect in Plary Settings</a>.";
-    } else if (reason === "needs_reconnect" || reason === "not_connected") {
-      hint.innerHTML = "<a href='" + apiBase + "/settings' target='_blank'>Reconnect Figma in Plary Settings</a> to enable auto-detected links.";
-    } else {
-      box.classList.add("hidden");
-      return;
-    }
-
-    $("team-url").classList.toggle("hidden", !showInput);
-    $("save-team-btn").classList.toggle("hidden", !showInput);
-    box.classList.remove("hidden");
-    $("more-options").open = true;
-  }
-
-  $("save-team-btn").onclick = () => {
-    var url = $("team-url").value.trim();
-    if (!url) {
-      $("team-error").textContent = "Paste your team page link.";
-      $("team-error").classList.remove("hidden");
-      return;
-    }
-    $("team-error").classList.add("hidden");
-    $("save-team-btn").disabled = true;
-    $("save-team-btn").textContent = "Saving...";
-    parent.postMessage({ pluginMessage: { type: "save-team-url", url: url } }, "*");
-  };
 
   function renderCollectionCheckboxes(collections) {
     const container = $("collections-list");
@@ -653,7 +564,7 @@
       savedInit = msg;
       if (msg.apiBase) apiBase = msg.apiBase;
       updateAccountStatus(msg);
-      // Re-inits triggered from Settings (team add/remove) stay on Settings
+      // Re-inits (e.g. after token save) stay on Settings if that is where the user is
       var inSettings = !$("settings-screen").classList.contains("hidden");
       if (token) {
         populateForm(msg);
@@ -688,16 +599,8 @@
         kind = msg.detectedKind;
         updateKindToggle();
       }
-      if (msg.detectedUrl) {
-        $("figma-url").value = msg.detectedUrl;
-        $("url-detected-badge").classList.remove("hidden");
-        $("url-help-box").classList.add("hidden");
-      } else {
-        $("figma-url").value = "";
-        $("url-detected-badge").classList.add("hidden");
-        $("url-help-box").classList.remove("hidden");
-        $("more-options").open = true;
-      }
+      $("figma-url").value = msg.detectedUrl || "";
+      $("url-detected-badge").classList.toggle("hidden", !msg.detectedUrl);
     } else if (msg.type === "save-error") {
       $("save-error").textContent = msg.error;
       $("save-error").classList.remove("hidden");
@@ -725,17 +628,6 @@
       $("login-plary-btn").textContent = "Continue with Plary";
       $("auth-status-error").textContent = msg.error || "Something went wrong. Try again.";
       $("auth-status-error").classList.remove("hidden");
-    } else if (msg.type === "team-error") {
-      // Route to whichever surface triggered it — Settings or the save-screen box
-      var inSettingsErr = !$("settings-screen").classList.contains("hidden");
-      var errEl = $(inSettingsErr ? "settings-team-error" : "team-error");
-      errEl.textContent = msg.error || "Couldn't save the team. Try again.";
-      errEl.classList.remove("hidden");
-      $("save-team-btn").disabled = false;
-      $("save-team-btn").textContent = "Save team";
-      $("settings-team-add").disabled = false;
-      $("settings-team-add").textContent = "Add team";
-      document.querySelectorAll("#settings-teams .remove-team").forEach(function (b) { b.disabled = false; });
     } else if (msg.type === "open-auth-url") {
       window.open(msg.url, "_blank");
     } else if (msg.type === "logged-out") {
@@ -849,13 +741,6 @@
       $("save-error").classList.remove("hidden");
       return;
     }
-    if (!$("figma-url").value.trim()) {
-      $("save-error").textContent =
-        "Add a Figma link first — paste this file's URL above, or set up auto-detect in More options.";
-      $("save-error").classList.remove("hidden");
-      $("more-options").open = true;
-      return;
-    }
     btn.disabled = true;
     btn.textContent = "Saving...";
 
@@ -953,28 +838,6 @@
     }
     $("settings-figma").innerHTML = fig;
 
-    var teams = msg.figmaTeams || [];
-    if (teams.length === 0) {
-      $("settings-teams").innerHTML =
-        '<div class="settings-row"><span class="grow" style="color:var(--text-3);white-space:normal;">No teams yet — add your team link to enable auto-detected Figma links.</span></div>';
-    } else {
-      $("settings-teams").innerHTML = teams.map(function (id) {
-        return '<div class="settings-row"><span class="grow">' +
-          '<a href="https://www.figma.com/files/team/' + encodeURIComponent(id) + '" target="_blank">Team ' + htmlEscape(id) + "</a></span>" +
-          '<button class="remove-team" data-team="' + htmlEscape(id) + '" aria-label="Remove team">&#10005;</button></div>';
-      }).join("");
-      document.querySelectorAll("#settings-teams .remove-team").forEach(function (btn) {
-        btn.onclick = function () {
-          btn.disabled = true;
-          parent.postMessage({ pluginMessage: { type: "remove-team", teamId: btn.getAttribute("data-team") } }, "*");
-        };
-      });
-    }
-
-    $("settings-team-url").value = "";
-    $("settings-team-error").classList.add("hidden");
-    $("settings-team-add").disabled = false;
-    $("settings-team-add").textContent = "Add team";
     if (msg.version) $("settings-version").textContent = "Plugin v" + msg.version;
   }
 
@@ -984,18 +847,6 @@
   };
   $("settings-back").onclick = function () {
     show("form-screen");
-  };
-  $("settings-team-add").onclick = function () {
-    var url = $("settings-team-url").value.trim();
-    if (!url) {
-      $("settings-team-error").textContent = "Paste your team page link.";
-      $("settings-team-error").classList.remove("hidden");
-      return;
-    }
-    $("settings-team-error").classList.add("hidden");
-    $("settings-team-add").disabled = true;
-    $("settings-team-add").textContent = "Adding...";
-    parent.postMessage({ pluginMessage: { type: "save-team-url", url: url } }, "*");
   };
 
   $("save-another-btn").onclick = () => {
