@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Library, FolderOpen, Settings } from "lucide-react";
+import { privateNav } from "@/private";
 
 const tabs = [
   { href: "/", label: "Library", icon: Library },
   { href: "/collections", label: "Collections", icon: FolderOpen },
   { href: "/settings", label: "Settings", icon: Settings },
+  ...privateNav,
 ];
 
 export function AppHeader() {

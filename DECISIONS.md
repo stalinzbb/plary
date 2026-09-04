@@ -8,6 +8,29 @@ Format: `## YYYY-MM-DD — Title` · Decision · Why · Rejected · Revisit when
 
 ---
 
+## 2026-09-02 — Private code: export-time exclusion, not a fork
+
+**Decision.** Org-only code lives in `plary-dev` under `web/private/**` (logic,
+registry) and `web/app/(private)/**` (pages, API routes). The public export
+(`docs/export-public.sh`) deletes both and replaces `web/private/index.ts` with
+an empty stub exporting the same names. Upstream code reaches private code only
+through `@/private` (the registry), always treating it as optional. Private DB
+objects go in a private SQL file, never `supabase/setup.sql`. Plugin variants
+are built from the same repo with env overrides (`PLARY_PLUGIN_ID/NAME`,
+`PLARY_SUPABASE_URL` → `plugin/dist/`), so org deployments need no manifest
+edits and `plary-dg` carries no code.
+
+**Why.** One canonical repo for both products; "what's private" is decided by
+file location, so the export never needs a manual scrub. A `Web Build`
+workflow on the public repo proves the tree builds without the private folder.
+
+**Rejected.** Feature flags (code would be public); the org fork carrying
+features (merge-conflict debt); a private npm package / plugin architecture
+(right answer only once several private features exist).
+
+**Revisit when.** Private features multiply or a second org appears — then a
+proper extension package.
+
 ## 2026-09-02 — Private-plugin mode only; Community mode dropped
 
 **Decision.** Every deployment (dev/reference, self-hosted, org) runs the plugin

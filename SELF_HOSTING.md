@@ -142,6 +142,16 @@ Build from the repo root:
 PLARY_API_BASE=https://<your-app-domain> npm run build
 ```
 
+**No manifest edits at all (alternative):** pass the values as env vars and the
+build writes a complete plugin to `plugin/dist/` without touching tracked files:
+
+```bash
+cd plugin && PLARY_API_BASE=https://<your-app-domain> PLARY_PLUGIN_ID=<id> PLARY_PLUGIN_NAME="Plary (Acme)" PLARY_SUPABASE_URL=https://<ref>.supabase.co npm run build
+```
+
+Then import `plugin/dist/manifest.json` in Figma. Handy when you track upstream
+and don't want a permanent local change to `manifest.json`.
+
 (The build fails with a clear error if `PLARY_API_BASE` isn't in your
 `allowedDomains` — that's the manifest check saving you from silent network
 failures inside Figma.)
