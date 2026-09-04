@@ -1,6 +1,6 @@
 {
   "name": "plary",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Plary — save and search Figma prototypes",
   "main": "code.js",
   "scripts": {

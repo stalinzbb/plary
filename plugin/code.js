@@ -1,6 +1,6 @@
 "use strict";
 const API_BASE = "https://project-plary.vercel.app";
-const VERSION = "1.0.11";
+const VERSION = "1.0.12";
 figma.showUI(__html__, { width: 360, height: 540, themeColors: true });
 let authPollInterval = null;
 // Private-plugin mode only (see DECISIONS.md 2026-09-02): the file key comes
@@ -142,12 +142,10 @@ async function init() {
                 collections = await res.json();
             else if (res.status === 401)
                 tokenRejected = true;
-            else if (res.status >= 500)
-                bootstrapError = "server";
+            // Collections are only datalist suggestions — a 5xx/network failure here
+            // must not disable Save. Only the status call below is a real dependency.
         }
-        catch (_b) {
-            bootstrapError = "network";
-        }
+        catch ( /* non-fatal */_b) { /* non-fatal */ }
     }
     // Check Figma OAuth connection status (non-fatal)
     let figmaConnected = false;
