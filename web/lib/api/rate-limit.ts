@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { alertFailOpen } from "./alert";
 
 // Best-effort client IP for rate-limit keying. Behind Vercel, the left-most
 // x-forwarded-for entry is the original client.
@@ -24,7 +25,7 @@ export async function checkRateLimit(
     p_max: max,
   });
   if (error) {
-    console.error("[rate-limit] check error:", error.message);
+    alertFailOpen("rate-limit:" + bucket, error.message);
     return true;
   }
   return data === true;

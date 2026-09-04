@@ -85,6 +85,11 @@ openssl rand -hex 32   # FIGMA_ENCRYPTION_KEY
 Save both in a password manager. They must match between local dev and your
 deployment when they share one database.
 
+Optional: set `ALERT_WEBHOOK_URL` to a Slack incoming webhook (or any endpoint
+accepting `{"text": ...}`) to be paged when a fail-open protection — the token
+revocation check, the rate limiter, or session tracking — is silently disabled
+by a database error. Unset, those events only produce a `[FAIL-OPEN]` log line.
+
 Run locally:
 
 ```bash

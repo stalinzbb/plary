@@ -8,6 +8,28 @@ Format: `## YYYY-MM-DD — Title` · Decision · Why · Rejected · Revisit when
 
 ---
 
+## 2026-09-03 — Plugin logout revokes every device; fail-open paths alert
+
+**Decision.** Plugin **Log out** calls `DELETE /api/token`, which bumps the
+user's token version — the same mechanism as Settings → Regenerate — so a
+copied token stops working. Side effect: the plugin on the user's other
+machines is logged out too. `POST /api/plugin/auth/authorize` is cookie-only
+(rejects any `Authorization` header) so a leaked plugin token can't mint more.
+The three fail-open DB paths (token-version check, rate limiter, session
+create) go through `alertFailOpen()`: a `[FAIL-OPEN]` log line plus optional
+`ALERT_WEBHOOK_URL` POST, throttled per key per instance.
+
+**Why.** Local-only logout left leaked tokens valid for up to 30d; silent
+fail-open meant a DB outage disabled revocation invisibly.
+
+**Rejected.** Per-device token IDs (a `jti` denylist) — needs a table and a
+lookup per request; not worth it at current user count.
+
+**Revisit when.** Multi-device users complain about cross-device logout, or a
+real error tracker replaces the webhook.
+
+Ported from `stalinzbb/plary-dg#1`, which was developed in the wrong repo.
+
 ## 2026-09-02 — Private code: export-time exclusion, not a fork
 
 **Decision.** Org-only code lives in `plary-dev` under `web/private/**` (logic,

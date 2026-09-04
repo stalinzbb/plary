@@ -135,6 +135,7 @@ Optional variables:
 | --- | --- |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Contact address shown on the privacy page (section hidden when unset) |
 | `NEXT_PUBLIC_AUTH_PROVIDERS` | Comma-separated Supabase OAuth providers to offer at login, e.g. `google,azure` (must also be enabled in the Supabase dashboard) |
+| `ALERT_WEBHOOK_URL` | Endpoint POSTed with `{"text": ...}` when a fail-open protection is disabled by a DB error (Slack incoming webhook or similar); unset means the `[FAIL-OPEN]` log line only |
 
 Generate secrets with:
 
@@ -256,6 +257,8 @@ When another page exists, the response includes `X-Next-Cursor`.
 | Method | Route | Description |
 | --- | --- | --- |
 | `GET` | `/api/token` | Generate a signed plugin token for the logged-in user |
+| `POST` | `/api/token` | Revoke all existing plugin tokens, then return a fresh one |
+| `DELETE` | `/api/token` | Revoke all plugin tokens without minting a new one (plugin log out) |
 | `POST` | `/api/uploads/thumbnail-url` | Create a signed Supabase Storage upload URL |
 
 The plugin sends the token as:
@@ -269,7 +272,7 @@ Authorization: Bearer <token>
 | Method | Route | Description |
 | --- | --- | --- |
 | `POST` | `/api/plugin/auth/init` | Create a pending auth session (unauthenticated), return `session_id` |
-| `POST` | `/api/plugin/auth/authorize` | Mark the session ready for the browser-authenticated user (session cookie) |
+| `POST` | `/api/plugin/auth/authorize` | Mark the session ready for the browser-authenticated user (session cookie only — an `Authorization` header is rejected) |
 | `GET` | `/api/plugin/auth/poll` | Plugin polls with `?session=`; returns `pending` / `ready` + JWT / `expired` |
 
 ### Figma OAuth

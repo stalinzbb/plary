@@ -67,6 +67,15 @@ function clearAuthPoll() {
   }
 }
 
+// Token was rejected by the server (expired, or revoked via Settings -> Regenerate).
+// Drop it and fall back to the login screen; init() re-runs in the no-token branch,
+// which makes no authenticated calls, so this can't loop.
+async function handleTokenRejected(): Promise<void> {
+  await figma.clientStorage.deleteAsync("plary_token");
+  figma.ui.postMessage({ type: "token-expired" });
+  await init();
+}
+
 async function startPluginAuth() {
   try {
     const res = await fetch(`${API_BASE}/api/plugin/auth/init`, { method: "POST" });
@@ -117,6 +126,12 @@ async function init() {
   resolveFileKey();
   const { detectedUrl, detectedKind } = detectSelection(node);
 
+  // A 401 from either bootstrap call means the stored token is expired or revoked;
+  // a throw or 5xx means Plary is unreachable or broken. Both used to be swallowed,
+  // leaving the UI to conclude "Figma account required".
+  let tokenRejected = false;
+  let bootstrapError: "network" | "server" | null = null;
+
   // Fetch existing collections for datalist suggestions
   let collections: { id: string; name: string }[] = [];
   if (token) {
@@ -125,7 +140,9 @@ async function init() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) collections = await res.json();
-    } catch { /* non-fatal */ }
+      else if (res.status === 401) tokenRejected = true;
+      else if (res.status >= 500) bootstrapError = "server";
+    } catch { bootstrapError = "network"; }
   }
 
   // Check Figma OAuth connection status (non-fatal)
@@ -144,9 +161,15 @@ async function init() {
         figmaHealth = data.health ?? null;
         if (data.figma_user) figmaOAuthUser = data.figma_user;
         if (data.plary_user_email) plaryUserEmail = data.plary_user_email;
+      } else if (res.status === 401) {
+        tokenRejected = true;
+      } else if (res.status >= 500) {
+        bootstrapError = "server";
       }
-    } catch { /* non-fatal */ }
+    } catch { bootstrapError = "network"; }
   }
+
+  if (tokenRejected) return handleTokenRejected();
 
   // Detect active Figma desktop user for mismatch detection
   let currentUser: { id: string | null; name: string; photoUrl: string | null } | null = null;
@@ -185,6 +208,7 @@ async function init() {
     currentUser,
     accountMismatch,
     canSave,
+    bootstrapError,
   });
 }
 
@@ -248,6 +272,18 @@ figma.ui.onmessage = async (msg: {
     clearAuthPoll();
   } else if (msg.type === "logout") {
     clearAuthPoll();
+    const stored = await figma.clientStorage.getAsync("plary_token");
+    if (stored) {
+      // Best-effort: revoke server-side so a copied token stops working too.
+      // ponytail: bumps the version for every device, so logging out here also
+      // logs out the plugin on the user's other machines. Acceptable for now.
+      try {
+        await fetch(`${API_BASE}/api/token`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${stored}` },
+        });
+      } catch { /* offline: local logout still proceeds */ }
+    }
     await figma.clientStorage.deleteAsync("plary_token");
     figma.ui.postMessage({ type: "logged-out" });
   } else if (msg.type === "save-prototype") {
@@ -352,10 +388,16 @@ async function savePrototype(msg: {
         message = "Can't reach Plary. Check your internet connection and try again.";
         break;
       case "auth":
-        if (detail.includes("Figma account not connected")) {
-          message = "Connect your Figma account in Plary Settings before saving.";
+        // 401 = the token itself is bad; 403 = the token is fine but Figma isn't
+        // connected (or needs reconnecting). Only the first is a re-login.
+        if (detail.includes("invalid_token") || detail.startsWith("401")) {
+          await handleTokenRejected(); // UI moves to the login screen
+          return;
+        }
+        if (detail.includes("figma_needs_reconnect")) {
+          message = "Reconnect your Figma account in Plary Settings, then try again.";
         } else {
-          message = "Invalid token. Go to Plary Settings to generate a new one.";
+          message = "Connect your Figma account in Plary Settings before saving.";
         }
         break;
       case "server":

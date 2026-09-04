@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { createServiceClient } from "@/lib/supabase/service";
+import { alertFailOpen } from "./alert";
 
 const secret = () => new TextEncoder().encode(process.env.PLARY_TOKEN_SECRET!);
 
@@ -27,7 +28,7 @@ async function getTokenVersion(userId: string): Promise<number | undefined> {
   if (error) {
     // ponytail: fail-open — a DB blip must not log every plugin user out.
     // Revocation is best-effort; the 30d TTL is the hard exposure bound.
-    console.error("[token] getTokenVersion error:", error.message);
+    alertFailOpen("token-version", error.message);
     return undefined;
   }
   return data?.version;

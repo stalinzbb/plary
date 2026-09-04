@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { alertFailOpen } from "./alert";
 import type { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "plary_session";
@@ -40,7 +41,8 @@ export async function createSession(
   });
 
   if (error) {
-    console.error("[session] Failed to create session:", error.message);
+    // Fails open: middleware still lets the user through on Supabase auth alone.
+    alertFailOpen("session-create", error.message);
     return "";
   }
 

@@ -628,6 +628,14 @@
       $("login-plary-btn").textContent = "Continue with Plary";
       $("auth-status-error").textContent = msg.error || "Something went wrong. Try again.";
       $("auth-status-error").classList.remove("hidden");
+    } else if (msg.type === "token-expired") {
+      // Reuses the login screen's error line; the "init" that follows shows that
+      // screen. Copy is generic because a bad pasted token lands here too.
+      $("auth-status").classList.add("hidden");
+      $("login-plary-btn").disabled = false;
+      $("login-plary-btn").textContent = "Continue with Plary";
+      $("auth-status-error").textContent = "Your Plary sign-in is no longer valid. Continue with Plary to sign in again.";
+      $("auth-status-error").classList.remove("hidden");
     } else if (msg.type === "open-auth-url") {
       window.open(msg.url, "_blank");
     } else if (msg.type === "logged-out") {
@@ -727,6 +735,9 @@
     if (canSave) {
       btn.disabled = false;
       btn.textContent = "Save to Plary";
+    } else if (savedInit && savedInit.bootstrapError) {
+      btn.disabled = true;
+      btn.textContent = "Can't save right now";
     } else {
       btn.disabled = true;
       btn.textContent = "Connect Figma to Save";
@@ -796,6 +807,16 @@
       lines.push("<b>Reconnect Figma</b>");
       lines.push("Plary's Figma permissions changed — auto-detected links won't work until you reconnect.");
       lines.push("<a href='" + apiBase + "/settings' target='_blank'>Reconnect in Plary Settings</a>");
+      statusEl.className = "status-warn";
+    } else if (msg.bootstrapError === "network") {
+      // Checked before "Figma account required": with the status call failed we
+      // don't know the connection state, so don't blame Figma for it.
+      lines.push("<b>Can't reach Plary</b>");
+      lines.push("Check your internet connection, then reopen the plugin.");
+      statusEl.className = "status-warn";
+    } else if (msg.bootstrapError === "server") {
+      lines.push("<b>Plary is having trouble</b>");
+      lines.push("Try again in a moment.");
       statusEl.className = "status-warn";
     } else if (!msg.figmaOAuthUser && msg.token) {
       // Yellow/Orange: no Figma OAuth connected — saves are blocked

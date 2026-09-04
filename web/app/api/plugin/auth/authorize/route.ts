@@ -3,6 +3,12 @@ import { getUserId } from "@/lib/api/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export async function POST(request: NextRequest) {
+  // Cookie-only: this route is called by the browser pairing page, and a leaked
+  // plugin token must not be able to approve new pairings (i.e. mint more tokens).
+  if (request.headers.get("authorization")) {
+    return NextResponse.json({ error: "Unauthorized", error_code: "unauthorized" }, { status: 401 });
+  }
+
   const userId = await getUserId(request);
   if (userId instanceof NextResponse) return userId;
 
