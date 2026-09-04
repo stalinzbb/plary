@@ -141,8 +141,9 @@ async function init() {
       });
       if (res.ok) collections = await res.json();
       else if (res.status === 401) tokenRejected = true;
-      else if (res.status >= 500) bootstrapError = "server";
-    } catch { bootstrapError = "network"; }
+      // Collections are only datalist suggestions — a 5xx/network failure here
+      // must not disable Save. Only the status call below is a real dependency.
+    } catch { /* non-fatal */ }
   }
 
   // Check Figma OAuth connection status (non-fatal)
